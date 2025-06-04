@@ -32,16 +32,12 @@
       "@/utils/*": ["src/utils/*"],
       "@/errors/*": ["src/errors/*"]
     },
-    "types": ["node"],
-    "typeRoots": ["./node_modules/@types"]
+    "types": ["node", "jest"],
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "src/types/**/*"
   ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts",
-    "**/*.spec.ts"
-  ]
+  "exclude": ["node_modules", "dist"]
 }

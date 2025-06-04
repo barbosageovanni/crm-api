@@ -1,102 +1,277 @@
-// src/config/redis.ts
-import Redis from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
 import { logger } from '../utils/logger';
 
 class RedisService {
   private client: Redis;
   private isConnected: boolean = false;
+  private connectionAttempted: boolean = false;
 
   constructor() {
-    this.client = new Redis({
+    const options: RedisOptions = {
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
       db: parseInt(process.env.REDIS_DB || '0'),
-      retryDelayOnFailover: 100,
+      retryStrategy(times: number): number | null {
+        const maxAttempts = 5; // Reduzido de 20 para 5
+        if (times > maxAttempts) {
+          logger.error(`Redis: Limite de ${maxAttempts} tentativas de reconexão atingido. Desistindo.`);
+          return null;
+        }
+        // Delay progressivo: 500ms, 1s, 2s, 4s, 8s
+        const delay = Math.min(times * 500, 8000);
+        logger.info(`Redis: Tentando reconectar (tentativa ${times}). Próxima tentativa em ${delay}ms.`);
+        return delay;
+      },
       enableReadyCheck: true,
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: 2, // Reduzido de 3 para 2
       lazyConnect: true,
-    });
+      // Adicionar timeout para evitar conexões que ficam pendentes
+      connectTimeout: 10000, // 10 segundos
+      commandTimeout: 5000,  // 5 segundos por comando
+      // Desabilitar ping automático durante reconexão
+      enableAutoPipelining: false,
+    };
 
+    if (process.env.REDIS_PASSWORD && process.env.REDIS_PASSWORD.length > 0) {
+      options.password = process.env.REDIS_PASSWORD;
+    }
+
+    this.client = new Redis(options);
     this.setupEventHandlers();
   }
 
   private setupEventHandlers(): void {
     this.client.on('connect', () => {
-      logger.info('Redis conectado');
+      logger.info('Redis: Conexão TCP estabelecida. Aguardando prontidão...');
+    });
+
+    this.client.on('ready', () => {
+      logger.info('Redis: Cliente pronto para uso!');
       this.isConnected = true;
     });
 
-    this.client.on('error', (error) => {
-      logger.error('Erro no Redis:', error);
+    this.client.on('error', (error: Error) => {
+      // Não logar erros de conexão se ainda não tentamos conectar explicitamente
+      if (!this.connectionAttempted && error.message.includes('ECONNREFUSED')) {
+        logger.debug('Redis: Conexão recusada (serviço pode estar indisponível)');
+      } else {
+        logger.error('Redis: Erro na conexão', { 
+          message: error.message, 
+          code: (error as any).code,
+          errno: (error as any).errno 
+        });
+      }
       this.isConnected = false;
     });
 
     this.client.on('close', () => {
-      logger.warn('Conexão Redis fechada');
+      logger.warn('Redis: Conexão fechada');
+      this.isConnected = false;
+    });
+
+    this.client.on('reconnecting', (delay: number) => {
+      logger.info(`Redis: Tentando reconectar em ${delay}ms...`);
+      this.isConnected = false;
+    });
+
+    this.client.on('end', () => {
+      logger.warn('Redis: Conexão terminada. Sem mais tentativas de reconexão.');
       this.isConnected = false;
     });
   }
 
-  async get<T>(key: string): Promise<T | null> {
+  /**
+   * Tenta estabelecer conexão com verificação prévia de disponibilidade
+   */
+  public async connect(): Promise<void> {
+    this.connectionAttempted = true;
+
+    if (this.client.status === 'ready') {
+      logger.info('Redis: Já conectado');
+      this.isConnected = true;
+      return;
+    }
+
+    if (this.client.status === 'connecting') {
+      logger.info('Redis: Conexão já em progresso');
+      return;
+    }
+
     try {
-      if (!this.isConnected) return null;
+      logger.info('Redis: Iniciando conexão...');
       
-      const value = await this.client.get(key);
-      return value ? JSON.parse(value) : null;
+      // Timeout para a conexão inicial
+      const connectPromise = this.client.connect();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout na conexão Redis')), 15000)
+      );
+
+      await Promise.race([connectPromise, timeoutPromise]);
+      logger.info('Redis: Conectado com sucesso!');
+      
     } catch (error) {
-      logger.error('Erro ao buscar cache:', { key, error });
-      return null;
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Redis: Falha na conexão inicial', { 
+        message: err.message,
+        host: process.env.REDIS_HOST || 'localhost',
+        port: process.env.REDIS_PORT || '6379'
+      });
+      this.isConnected = false;
+      throw err;
     }
   }
 
-  async set(key: string, value: any, ttl: number = 300): Promise<boolean> {
+  /**
+   * Conecta apenas se necessário e possível
+   */
+  public async connectIfNeeded(): Promise<boolean> {
+    if (this.isHealthy()) {
+      return true;
+    }
+
     try {
-      if (!this.isConnected) return false;
-      
-      await this.client.setex(key, ttl, JSON.stringify(value));
+      await this.connect();
       return true;
     } catch (error) {
-      logger.error('Erro ao salvar cache:', { key, error });
+      logger.warn('Redis: Não foi possível conectar. Operações serão ignoradas.');
       return false;
     }
   }
 
-  async del(pattern: string): Promise<void> {
+  public async get<T>(key: string): Promise<T | null> {
+    if (!(await this.connectIfNeeded())) {
+      return null;
+    }
+
     try {
-      if (!this.isConnected) return;
-      
-      const keys = await this.client.keys(pattern);
-      if (keys.length > 0) {
-        await this.client.del(...keys);
+      const value = await this.client.get(key);
+      return value ? JSON.parse(value) as T : null;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Redis: Erro ao buscar chave', { key, message: err.message });
+      return null;
+    }
+  }
+
+  public async set(key: string, value: any, ttlSeconds: number = 300): Promise<boolean> {
+    if (!(await this.connectIfNeeded())) {
+      return false;
+    }
+
+    try {
+      await this.client.setex(key, ttlSeconds, JSON.stringify(value));
+      return true;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Redis: Erro ao definir chave', { key, message: err.message });
+      return false;
+    }
+  }
+
+  public async del(patternOrKey: string | string[]): Promise<number> {
+    if (!(await this.connectIfNeeded())) {
+      return 0;
+    }
+
+    try {
+      if (typeof patternOrKey === 'string' && patternOrKey.includes('*')) {
+        const keys = await this.client.keys(patternOrKey);
+        if (keys.length > 0) {
+          const count = await this.client.del(...keys);
+          logger.info(`Redis: ${count} chaves deletadas (padrão: ${patternOrKey})`);
+          return count;
+        }
+        return 0;
+      } else {
+        const keysToDelete = Array.isArray(patternOrKey) ? patternOrKey : [patternOrKey];
+        if (keysToDelete.length === 0) return 0;
+        const count = await this.client.del(...keysToDelete);
+        logger.info(`Redis: ${count} chaves deletadas`);
+        return count;
       }
     } catch (error) {
-      logger.error('Erro ao deletar cache:', { pattern, error });
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Redis: Erro ao deletar chaves', { patternOrKey, message: err.message });
+      return 0;
     }
   }
 
-  async flush(): Promise<void> {
+  public async flush(): Promise<boolean> {
+    if (!(await this.connectIfNeeded())) {
+      return false;
+    }
+
     try {
-      if (!this.isConnected) return;
       await this.client.flushdb();
+      logger.info('Redis: Cache limpo com sucesso');
+      return true;
     } catch (error) {
-      logger.error('Erro ao limpar cache:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Redis: Erro ao limpar cache', { message: err.message });
+      return false;
     }
   }
 
-  isHealthy(): boolean {
-    return this.isConnected;
+  /**
+   * Verifica se está saudável e pronto
+   */
+  public isHealthy(): boolean {
+    return this.isConnected && this.client.status === 'ready';
   }
 
-  async disconnect(): Promise<void> {
-    await this.client.quit();
+  /**
+   * Testa conectividade com ping
+   */
+  public async ping(): Promise<boolean> {
+    try {
+      if (!(await this.connectIfNeeded())) {
+        return false;
+      }
+      const result = await this.client.ping();
+      return result === 'PONG';
+    } catch (error) {
+      logger.error('Redis: Ping falhou', { error: (error as Error).message });
+      return false;
+    }
+  }
+
+  /**
+   * Encerra conexão graciosamente
+   */
+  public async disconnect(): Promise<void> {
+    if (this.client.status !== 'end') {
+      try {
+        await this.client.quit();
+        logger.info('Redis: Desconectado com sucesso');
+      } catch (error) {
+        logger.error('Redis: Erro ao desconectar', { error: (error as Error).message });
+        this.client.disconnect(false);
+      } finally {
+        this.isConnected = false;
+      }
+    }
+  }
+
+  /**
+   * Informações de status para debug
+   */
+  public getStatus(): {
+    isConnected: boolean;
+    clientStatus: string;
+    isHealthy: boolean;
+  } {
+    return {
+      isConnected: this.isConnected,
+      clientStatus: this.client.status,
+      isHealthy: this.isHealthy()
+    };
   }
 }
 
 // Singleton instance
 export const redisService = new RedisService();
 
-// Cache keys e TTL constants
+// Constantes de Cache
 export const CACHE_KEYS = {
   CLIENTE_LIST: 'cliente:list',
   CLIENTE_BY_ID: 'cliente:id',
@@ -104,8 +279,8 @@ export const CACHE_KEYS = {
 } as const;
 
 export const CACHE_TTL = {
-  SHORT: 60,      // 1 minuto
-  MEDIUM: 300,    // 5 minutos
-  LONG: 1800,     // 30 minutos
-  VERY_LONG: 3600, // 1 hora
+  SHORT: 60,        // 1 minuto
+  MEDIUM: 5 * 60,   // 5 minutos
+  LONG: 30 * 60,    // 30 minutos
+  VERY_LONG: 60 * 60, // 1 hora
 } as const;
