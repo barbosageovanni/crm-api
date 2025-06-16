@@ -1,7 +1,5 @@
-// src/features/auth/authDtos.ts
-
-// Papel do usuário (deve corresponder ao backend)
-export const PapelUsuarioEnum = { // Renomeado para clareza que é um objeto de enum
+// Papel do usuário
+export const PapelUsuarioEnum = {
   ADMIN: 'ADMIN',
   USUARIO: 'USUARIO',
   VENDEDOR: 'VENDEDOR',
@@ -16,50 +14,139 @@ export interface LoginUserDTO {
   senha: string;
 }
 
+// DTO para os dados que são enviados para a API de registro (sem confirmaSenha)
+export interface RegisterApiPayload {
+  nome: string;
+  email: string;
+  senha: string;
+  papel: PapelUsuario;
+}
+
+// DTO para a resposta completa da API de autenticação
+export interface AuthApiResponse {
+  user: UserProfileDTO;
+  token: string;
+  message?: string;
+}
+
 // DTO para registro
 export interface RegisterUserDTO {
   nome: string;
   email: string;
   senha: string;
-  papel: PapelUsuario;
-  // confirmaSenha é geralmente usado apenas no estado do formulário frontend, não no DTO de dados.
-  // Se precisar no tipo do formulário, crie uma interface separada para o estado do formulário.
+  papel?: PapelUsuario;
+  confirmaSenha?: string; // Apenas para validação frontend
 }
 
-// DTO do perfil do usuário (como retornado pela API e usado no frontend)
-export interface UserProfileDTO {
-  id: number;
+// DTO para esqueceu senha
+export interface ForgotPasswordDTO {
+  email: string;
+}
+
+// DTO para redefinir senha
+export interface ResetPasswordDTO {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+// DTO para alterar senha
+export interface ChangePasswordDTO {
+  senhaAtual: string;
+  novaSenha: string;
+  confirmaNovaSenha: string;
+}
+
+// Interface do usuário (unificada)
+export interface User {
+  id: string;
   nome: string;
   email: string;
-  papel: PapelUsuario;
-  ativo?: boolean; // Adicionado como opcional, pode vir ou não do perfil
-  createdAt: string; // Datas como string (ISO) são comuns em respostas JSON
-  updatedAt: string;
+  papel?: PapelUsuario;
+  ativo?: boolean;
+  avatar?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-// DTO para a resposta da autenticação bem-sucedida (login ou registro).
-// ESTA É A ÚNICA DEFINIÇÃO DE AuthResponseDTO
-export interface AuthResponseDTO {
-  user: UserProfileDTO;   // Contém os dados do perfil do usuário.
-  token: string;          // O token JWT gerado.
-  message?: string;        // Mensagem opcional de sucesso (ex: "Login bem-sucedido!").
+// DTO do perfil do usuário
+export interface UserProfileDTO extends User {
+  // Herda tudo de User, pode adicionar campos específicos se necessário
 }
 
 // DTO para atualização de perfil
 export interface UpdateProfileDTO {
-  nome?: string;
-  email?: string;
-  // Outros campos que podem ser atualizados, exceto senha ou papel, que geralmente têm fluxos próprios.
+ id: number;
+  nome: string;
+  email: string;
+  papel: PapelUsuario;
+  ativo: boolean;
+  createdAt: string; // Datas como string (formato ISO)
+  updatedAt: string;
 }
 
-// DTO para alteração de senha
-export interface ChangePasswordDTO {
-  senhaAtual: string;
-  novaSenha: string;
-  confirmaNovaSenha: string; // Para validação no formulário do frontend.
+// Resposta de autenticação (unificada)
+export interface AuthResponseDTO {
+  success?: boolean;
+  message?: string;
+  token: string;
+  user: UserProfileDTO;
+  expiresIn?: number;
 }
 
-// A exportação 'export type PapelUsuarioValues = PapelUsuario;' era redundante,
-// pois PapelUsuario já é o tipo dos valores.
-// Se você precisar de um array com os valores do enum para um <select>, por exemplo:
-// export const listaPapeisUsuario = Object.values(PapelUsuarioEnum);
+// Resposta esqueceu senha
+export interface ForgotPasswordResponseDTO {
+  message: string;
+  success: boolean;
+}
+
+// Resposta de erro
+export interface AuthError {
+  success: false;
+  message: string;
+  error?: string;
+  statusCode?: number;
+}
+
+// Context Auth State
+export interface AuthState {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+}
+
+// Auth Context Interface
+export interface AuthContextType {
+  // Estado
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+  
+  // Métodos
+  login: (credentials: LoginUserDTO) => Promise<void>;
+  register: (userData: RegisterUserDTO) => Promise<void>;
+  logout: () => void;
+  resetPassword: (email: string) => Promise<void>;
+  changePassword: (passwords: ChangePasswordDTO) => Promise<void>;
+  verifyToken: () => Promise<boolean>;
+  clearError: () => void;
+  
+  // Utilitários
+  getCurrentUser: () => User | null;
+  getCurrentToken: () => string | null;
+}
+
+// Tipos para validação
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
+}

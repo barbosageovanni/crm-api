@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import userService from './userService';
-import type { CreateUserDTO, UpdateUserDTO, UserDTO, PapelUsuario } from '../../features/users/userDtos';
+import { PapelUsuario, type CreateUserDTO, type UpdateUserDTO, type UserDTO } from '../../features/users/userDtos';
 
 // Componentes MUI
 import Box from '@mui/material/Box';
@@ -186,7 +186,7 @@ export default function UserForm({ user, isEdit = false }: UserFormProps) {
         const updateData: UpdateUserDTO = {
           nome: formValues.nome,
           email: formValues.email,
-          papel: formValues.papel as PapelUsuario,
+          papel: formValues.papel,
           ativo: formValues.ativo
         };
         
@@ -198,7 +198,7 @@ export default function UserForm({ user, isEdit = false }: UserFormProps) {
           nome: formValues.nome,
           email: formValues.email,
           senha: formValues.senha,
-          papel: formValues.papel as PapelUsuario,
+          papel: formValues.papel,
           ativo: formValues.ativo
         };
         

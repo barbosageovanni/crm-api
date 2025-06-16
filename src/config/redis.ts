@@ -1,4 +1,4 @@
-import Redis, { RedisOptions } from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis'; // Certifique-se que "ioredis" está instalado (npm install ioredis)
 import { logger } from '../utils/logger';
 
 class RedisService {
@@ -25,10 +25,10 @@ class RedisService {
       enableReadyCheck: true,
       maxRetriesPerRequest: 2, // Reduzido de 3 para 2
       lazyConnect: true,
-      // Adicionar timeout para evitar conexões que ficam pendentes
+      // Adiciona timeout para evitar conexões pendentes
       connectTimeout: 10000, // 10 segundos
       commandTimeout: 5000,  // 5 segundos por comando
-      // Desabilitar ping automático durante reconexão
+      // Desabilitar auto-pipelining durante reconexão
       enableAutoPipelining: false,
     };
 
@@ -51,7 +51,7 @@ class RedisService {
     });
 
     this.client.on('error', (error: Error) => {
-      // Não logar erros de conexão se ainda não tentamos conectar explicitamente
+      // Evitar logar erros de conexão se ainda não houve tentativa explícita
       if (!this.connectionAttempted && error.message.includes('ECONNREFUSED')) {
         logger.debug('Redis: Conexão recusada (serviço pode estar indisponível)');
       } else {
@@ -99,7 +99,6 @@ class RedisService {
 
     try {
       logger.info('Redis: Iniciando conexão...');
-      
       // Timeout para a conexão inicial
       const connectPromise = this.client.connect();
       const timeoutPromise = new Promise((_, reject) => 
@@ -108,13 +107,12 @@ class RedisService {
 
       await Promise.race([connectPromise, timeoutPromise]);
       logger.info('Redis: Conectado com sucesso!');
-      
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error('Redis: Falha na conexão inicial', { 
         message: err.message,
         host: process.env.REDIS_HOST || 'localhost',
-        port: process.env.REDIS_PORT || '6379'
+        port: process.env.REDIS_PORT || '5555'
       });
       this.isConnected = false;
       throw err;
@@ -128,7 +126,6 @@ class RedisService {
     if (this.isHealthy()) {
       return true;
     }
-
     try {
       await this.connect();
       return true;
@@ -142,7 +139,6 @@ class RedisService {
     if (!(await this.connectIfNeeded())) {
       return null;
     }
-
     try {
       const value = await this.client.get(key);
       return value ? JSON.parse(value) as T : null;
@@ -157,7 +153,6 @@ class RedisService {
     if (!(await this.connectIfNeeded())) {
       return false;
     }
-
     try {
       await this.client.setex(key, ttlSeconds, JSON.stringify(value));
       return true;
@@ -172,7 +167,6 @@ class RedisService {
     if (!(await this.connectIfNeeded())) {
       return 0;
     }
-
     try {
       if (typeof patternOrKey === 'string' && patternOrKey.includes('*')) {
         const keys = await this.client.keys(patternOrKey);
@@ -200,7 +194,6 @@ class RedisService {
     if (!(await this.connectIfNeeded())) {
       return false;
     }
-
     try {
       await this.client.flushdb();
       logger.info('Redis: Cache limpo com sucesso');
@@ -213,14 +206,14 @@ class RedisService {
   }
 
   /**
-   * Verifica se está saudável e pronto
+   * Verifica se o cliente está saudável e pronto
    */
   public isHealthy(): boolean {
     return this.isConnected && this.client.status === 'ready';
   }
 
   /**
-   * Testa conectividade com ping
+   * Testa a conectividade com o comando ping
    */
   public async ping(): Promise<boolean> {
     try {
@@ -236,7 +229,7 @@ class RedisService {
   }
 
   /**
-   * Encerra conexão graciosamente
+   * Encerra a conexão de forma graciosa
    */
   public async disconnect(): Promise<void> {
     if (this.client.status !== 'end') {
@@ -253,7 +246,7 @@ class RedisService {
   }
 
   /**
-   * Informações de status para debug
+   * Retorna informações de status para debug
    */
   public getStatus(): {
     isConnected: boolean;
@@ -271,7 +264,7 @@ class RedisService {
 // Singleton instance
 export const redisService = new RedisService();
 
-// Constantes de Cache
+// Constantes de cache
 export const CACHE_KEYS = {
   CLIENTE_LIST: 'cliente:list',
   CLIENTE_BY_ID: 'cliente:id',

@@ -1,120 +1,76 @@
-// src/middlewares/rateLimiter.ts
-
-import rateLimit, { Options, Store } from 'express-rate-limit'; // Importe Options e Store para tipagem
+import rateLimit, { Options, Store } from 'express-rate-limit';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 
-// ... (seção do redisStore comentada permanece como está, pois ainda não está ativa) ...
-
-const createRateLimiter = (windowMs: number, max: number, messageText: string, useRedisIfAvailable?: boolean) => {
-  // Inicialize seu store customizado aqui. Por enquanto, será undefined.
-  let customStore: Store | undefined = undefined;
-
-  // DESCOMENTE E ADAPTE QUANDO FOR IMPLEMENTAR O REDIS STORE
-  /*
-  if (useRedisIfAvailable && typeof redisStore !== 'undefined') { // 'redisStore' viria da sua lógica comentada
-    customStore = redisStore; // Atribui o redisStore se ele estiver configurado e disponível
-  }
-  */
-
-  // Crie o objeto de opções base
-  const options: Partial<Options> = { // Use Partial<Options> para flexibilidade
-    windowMs,
-    max,
-    message: {
-      error: 'Too many requests',
-      message: messageText, // Use o parâmetro messageText aqui
-      retryAfter: Math.ceil(windowMs / 1000)
+// Função auxiliar para criar limiters com configurações padrão e customizadas
+const createRateLimiter = (options: Partial<Options>): any => {
+  return rateLimit({
+    windowMs: options.windowMs || 15 * 60 * 1000, // 15 minutos
+    max: options.max || 100, // Limite de 100 requisições por IP por windowMs
+    message: 'Muitas requisições de seu IP, por favor, tente novamente após 15 minutos.',
+    standardHeaders: true, // Retorna informações de limite nas headers `RateLimit-*`
+    legacyHeaders: false, // Desabilita headers `X-RateLimit-*`
+    handler: (req: Request, res: Response, next: NextFunction, options: Options) => {
+      logger.warn(`Rate limit excedido para IP: ${req.ip} na rota ${req.method} ${req.originalUrl}`);
+      res.status(options.statusCode || 429).send(options.message);
     },
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req: Request, res: Response, _next: NextFunction, opts: Options) => {
-      logger.warn('Rate limit atingido', {
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        url: req.originalUrl,
-        method: req.method,
-        limit: opts.max,
-        windowMs: opts.windowMs,
-      });
-      
-      res.status(opts.statusCode).json({
-        error: 'Too many requests',
-        // Acessar message de opts.message, que pode ser um objeto ou string
-        message: typeof opts.message === 'string' ? opts.message : (opts.message as { message: string }).message,
-        retryAfter: Math.ceil(opts.windowMs / 1000)
-      });
-    },
-    skip: (req: Request) => {
-      const whitelist = (process.env.RATE_LIMIT_WHITELIST || '').split(',').filter(ip => ip.trim() !== '');
-      return process.env.NODE_ENV === 'development' && req.ip ? whitelist.includes(req.ip) : false;
-    }
-  };
-
-  // Adicione a propriedade 'store' ao objeto 'options' SOMENTE se 'customStore' tiver um valor válido.
-  // Se 'customStore' for undefined, a propriedade 'store' será omitida,
-  // e 'express-rate-limit' usará o MemoryStore padrão.
-  if (customStore) {
-    options.store = customStore;
-  }
-
-  return rateLimit(options);
+    ...options,
+  });
 };
 
-// ... (resto do seu arquivo: generalLimiter, authLimiter, etc.) ...
-// Certifique-se que o parâmetro 'message' em createRateLimiter seja usado corretamente.
-// No seu código original, o parâmetro 'message' da função createRateLimiter era usado
-// na propriedade message.message do objeto de mensagem. Renomeei para messageText para clareza.
+// Definindo os limiters específicos
+export const generalLimiter = createRateLimiter({
+  max: 100, // 100 requisições por 15 minutos para rotas gerais
+  windowMs: 15 * 60 * 1000,
+});
 
-export const generalLimiter = createRateLimiter(
-  parseInt(process.env.GENERAL_LIMIT_WINDOW_MS || String(15 * 60 * 1000)),
-  parseInt(process.env.GENERAL_LIMIT_MAX || '100'),
-  'Muitas requisições. Tente novamente mais tarde.' // Este é o messageText
-);
+export const apiLimiter = createRateLimiter({
+  max: 60, // 60 requisições por 15 minutos para rotas /api
+  windowMs: 15 * 60 * 1000,
+});
 
-// ... Defina os outros limiters da mesma forma ...
+export const authLimiter = createRateLimiter({
+  max: 5, // 5 requisições por 5 minutos para rotas de autenticação (login/registro)
+  windowMs: 5 * 60 * 1000,
+  message: 'Muitas tentativas de autenticação. Por favor, tente novamente após 5 minutos.',
+});
 
-export const authLimiter = createRateLimiter(
-  parseInt(process.env.AUTH_LIMIT_WINDOW_MS || String(15 * 60 * 1000)),
-  parseInt(process.env.AUTH_LIMIT_MAX || '5'),
-  'Muitas tentativas de login. Tente novamente mais tarde.'
-);
+export const createLimiter = createRateLimiter({
+  max: 10, // 10 requisições de criação por 15 minutos
+  windowMs: 15 * 60 * 1000,
+  message: 'Muitas requisições de criação. Por favor, tente novamente mais tarde.',
+});
 
-export const apiLimiter = createRateLimiter(
-  parseInt(process.env.API_LIMIT_WINDOW_MS || String(1 * 60 * 1000)),
-  parseInt(process.env.API_LIMIT_MAX || '20'),
-  'Limite de API atingido. Tente novamente em 1 minuto.'
-);
-
-export const createLimiter = createRateLimiter(
-  parseInt(process.env.CREATE_LIMIT_WINDOW_MS || String(1 * 60 * 1000)),
-  parseInt(process.env.CREATE_LIMIT_MAX || '5'),
-  'Limite de criação atingido. Tente novamente em 1 minuto.'
-);
-
-export const criticalLimiter = createRateLimiter(
-  parseInt(process.env.CRITICAL_LIMIT_WINDOW_MS || String(5 * 60 * 1000)),
-  parseInt(process.env.CRITICAL_LIMIT_MAX || '3'),
-  'Operação crítica limitada. Tente novamente em 5 minutos.'
-);
-
+export const criticalLimiter = createRateLimiter({
+  max: 3, // 3 requisições críticas (ex: delete) por 15 minutos
+  windowMs: 15 * 60 * 1000,
+  message: 'Muitas requisições críticas. Por favor, tente novamente mais tarde.',
+});
 
 export const routeBasedLimiter = (req: Request, res: Response, next: NextFunction) => {
-  if (req.path.includes('/auth/login') || req.path.includes('/auth/register')) {
+  // REVISÃO: A lógica foi reordenada para ser mais clara e eficiente (do mais específico para o mais geral).
+
+  // 1. Rotas de autenticação são as mais críticas para limitar
+  if (req.path.startsWith('/auth')) { // Removido /api pois as rotas já são /auth/login, etc.
     return authLimiter(req, res, next);
   }
   
-  if (req.method === 'POST' && (req.path === '/clientes' || req.path === '/clientes/')) {
+  // 2. Limitar operações de criação (POST) em rotas de recursos principais
+  if (req.method === 'POST' && req.path.startsWith('/clientes')) {
     return createLimiter(req, res, next);
   }
   
+  // 3. Limitar operações perigosas como DELETE
   if (req.method === 'DELETE' && req.path.startsWith('/clientes/')) {
     return criticalLimiter(req, res, next);
   }
   
-  if (req.path.startsWith('/api/') || req.path.startsWith('/clientes')) {
+  // 4. Um limite geral para todas as outras chamadas de API
+  if (req.path.startsWith('/api/')) {
       return apiLimiter(req, res, next);
   }
 
+  // 5. Um limite genérico para qualquer outra rota que não seja da API
   return generalLimiter(req, res, next);
 };
+

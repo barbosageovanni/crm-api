@@ -1,10 +1,7 @@
-// src/controllers/healthController.ts - Versão com melhorias
-import { Request, Response, NextFunction } from 'express'; // Adicionado NextFunction
-import prisma from '../prisma/client'; // Assumindo que este é o seu cliente Prisma global
+import { Request, Response, NextFunction } from 'express';
+import prisma from '../prisma/client';
 import { redisService } from '../config/redis';
 import { logger } from '../utils/logger';
-
-// Definições de interface permanecem as mesmas
 
 interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -26,31 +23,30 @@ interface ServiceHealth {
 
 interface MemoryHealth {
   status: 'healthy' | 'warning' | 'critical';
-  used: number; // Em MB
-  total: number; // Em MB
-  percentage: number; // %
+  used: number;      // Heap used in MB
+  total: number;     // Heap total in MB
+  percentage: number; // Percentage of heap used
 }
 
-
-// Limiares de memória configuráveis via variáveis de ambiente
+// Memory thresholds configured via environment variables
 const MEMORY_CRITICAL_THRESHOLD_PERCENT = parseInt(process.env.MEMORY_CRITICAL_THRESHOLD_PERCENT || '90');
 const MEMORY_WARNING_THRESHOLD_PERCENT = parseInt(process.env.MEMORY_WARNING_THRESHOLD_PERCENT || '70');
 
-export const healthCheck = async (req: Request, res: Response) => {
+export const healthCheck = async (_req: Request, res: Response) => {
   const startTime = Date.now();
-  
+
   try {
     const dbHealth = await checkDatabaseHealth();
     const redisHealth = await checkRedisHealth();
     const memoryHealth = checkMemoryHealth();
-    
+
     const overallStatus = determineOverallStatus(dbHealth, redisHealth, memoryHealth);
-    
+
     const healthStatus: HealthStatus = {
       status: overallStatus,
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      version: process.env.APP_VERSION || process.env.npm_package_version || '1.0.0', // Usar APP_VERSION se definido
+      version: process.env.APP_VERSION || process.env.npm_package_version || '1.0.0',
       services: {
         database: dbHealth,
         redis: redisHealth,
@@ -58,9 +54,9 @@ export const healthCheck = async (req: Request, res: Response) => {
       }
     };
 
-    const statusCode = overallStatus === 'unhealthy' ? 503 : 200; // Unhealthy -> 503, Degraded/Healthy -> 200
+    const statusCode = overallStatus === 'unhealthy' ? 503 : 200;
 
-    logger.info('Health check executado', {
+    logger.info('Health check executed', {
       status: overallStatus,
       durationMs: Date.now() - startTime,
       services: {
@@ -71,15 +67,14 @@ export const healthCheck = async (req: Request, res: Response) => {
     });
 
     res.status(statusCode).json(healthStatus);
-    
   } catch (error) {
     const err = error as Error;
-    logger.error('Erro crítico no health check', { message: err.message, stack: err.stack });
-    
+    logger.error('Critical error during health check', { message: err.message, stack: err.stack });
+
     res.status(503).json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
-      error: 'Health check falhou devido a um erro interno.',
+      error: 'Internal error during health check.',
       details: err.message,
       uptime: process.uptime()
     });
@@ -89,14 +84,14 @@ export const healthCheck = async (req: Request, res: Response) => {
 async function checkDatabaseHealth(): Promise<ServiceHealth> {
   const start = Date.now();
   try {
-    await prisma.$queryRaw`SELECT 1`; // Comando simples para verificar a conexão
+    await prisma.$queryRaw`SELECT 1`;
     return {
       status: 'healthy',
       responseTime: Date.now() - start
     };
   } catch (error) {
     const err = error as Error;
-    logger.error('Falha na verificação de saúde do banco de dados', { message: err.message });
+    logger.error('Database health check failed', { message: err.message });
     return {
       status: 'unhealthy',
       error: err.message,
@@ -108,32 +103,29 @@ async function checkDatabaseHealth(): Promise<ServiceHealth> {
 async function checkRedisHealth(): Promise<ServiceHealth> {
   const start = Date.now();
   try {
-    if (!redisService.isHealthy()) { // Verifica o status da conexão interna do redisService
-      logger.warn('Verificação de saúde do Redis: cliente não conectado inicialmente.');
+    if (!redisService.isHealthy()) {
+      logger.warn('Redis health check: client not connected initially.');
       return {
         status: 'unhealthy',
-        error: 'Redis não conectado (verificação inicial)'
+        error: 'Redis not connected (initial check)',
+        responseTime: Date.now() - start
       };
     }
 
-    // Realiza um PING para garantir que o servidor Redis está respondendo
-    // O ioredis pode ter um método ping() ou você pode usar set/get como antes
-    // Supondo que seu redisService.client é uma instância ioredis
-    // await redisService.getClient().ping(); // Se você expor getClient() em redisService
-    // Ou continue com set/get se preferir:
-    await redisService.set('health_check_ping', 'pong', 10); // TTL curto
+    // Perform a quick set/get check with a short TTL
+    await redisService.set('health_check_ping', 'pong', 10);
     const pong = await redisService.get('health_check_ping');
     if (pong !== 'pong') {
-        throw new Error('Falha no comando PING/PONG do Redis (valor retornado não esperado).');
+      throw new Error('Unexpected response from Redis PING/PONG command.');
     }
-    
+
     return {
       status: 'healthy',
       responseTime: Date.now() - start
     };
   } catch (error) {
     const err = error as Error;
-    logger.error('Falha na verificação de saúde do Redis', { message: err.message });
+    logger.error('Redis health check failed', { message: err.message });
     return {
       status: 'unhealthy',
       error: err.message,
@@ -144,33 +136,22 @@ async function checkRedisHealth(): Promise<ServiceHealth> {
 
 function checkMemoryHealth(): MemoryHealth {
   const memUsage = process.memoryUsage();
-  // rss (Resident Set Size) é frequentemente mais representativo da memória total usada pelo processo
-  const usedMemory = memUsage.rss; 
-  const totalMemory = require('os').totalmem(); // Memória total do sistema operacional
-  // Para heap:
-  // const usedHeap = memUsage.heapUsed;
-  // const totalHeap = memUsage.heapTotal;
+  const usedHeap = memUsage.heapUsed;
+  const totalHeap = memUsage.heapTotal;
+  const currentHeapPercentage = totalHeap > 0 ? (usedHeap / totalHeap) * 100 : 0;
 
-  // Usaremos RSS como uma métrica geral do processo. Para heap especificamente, use heapUsed/heapTotal.
-  const percentage = totalMemory > 0 ? (usedMemory / totalMemory) * 100 : 0; // % do total do sistema
-  // Ou, para % do heap alocado:
-  // const heapPercentage = memUsage.heapTotal > 0 ? (memUsage.heapUsed / memUsage.heapTotal) * 100 : 0;
-  
   let status: 'healthy' | 'warning' | 'critical' = 'healthy';
-  // Basearemos o status no uso de heap, que é mais controlável pela aplicação Node.js
-  const currentHeapPercentage = memUsage.heapTotal > 0 ? (memUsage.heapUsed / memUsage.heapTotal) * 100 : 0;
-
   if (currentHeapPercentage >= MEMORY_CRITICAL_THRESHOLD_PERCENT) {
     status = 'critical';
   } else if (currentHeapPercentage >= MEMORY_WARNING_THRESHOLD_PERCENT) {
     status = 'warning';
   }
-  
+
   return {
     status,
-    used: Math.round(memUsage.heapUsed / 1024 / 1024), // Heap usado em MB
-    total: Math.round(memUsage.heapTotal / 1024 / 1024), // Heap total em MB
-    percentage: Math.round(currentHeapPercentage) // % do heap usado
+    used: Math.round(usedHeap / 1024 / 1024),
+    total: Math.round(totalHeap / 1024 / 1024),
+    percentage: Math.round(currentHeapPercentage)
   };
 }
 
@@ -180,47 +161,32 @@ function determineOverallStatus(
   memory: MemoryHealth
 ): 'healthy' | 'degraded' | 'unhealthy' {
   if (db.status === 'unhealthy') {
-    return 'unhealthy'; // DB é crítico
+    return 'unhealthy';
   }
-  
   if (redis.status === 'unhealthy' || memory.status === 'critical') {
-    return 'degraded'; // Redis não saudável ou memória crítica torna o sistema degradado
+    return 'degraded';
   }
-  
   if (memory.status === 'warning') {
-    return 'degraded'; // Memória em alerta também é degradado
+    return 'degraded';
   }
-  
   return 'healthy';
 }
 
-// Endpoint para métricas básicas (formato Prometheus-like)
-// Para métricas mais avançadas e melhor compatibilidade com Prometheus,
-// considere usar uma biblioteca como 'prom-client'.
-// npm install prom-client
-// Exemplo com prom-client:
-// import client from 'prom-client';
-// const register = new client.Registry();
-// client.collectDefaultMetrics({ register });
-// export const metrics = async (req: Request, res: Response) => {
-//   res.set('Content-Type', register.contentType);
-//   res.end(await register.metrics());
-// }
-export const metrics = async (req: Request, res: Response) => {
+export const metrics = async (_req: Request, res: Response) => {
   try {
     const memUsage = process.memoryUsage();
-    const cpuUsage = process.cpuUsage(); // Retorna em microssegundos
-    
+    const cpuUsage = process.cpuUsage();
+
     const metricsText = `
-# HELP nodejs_heap_space_size_used_bytes Process heap space size used from Node.js in bytes.
+# HELP nodejs_heap_space_size_used_bytes Process heap space used in bytes.
 # TYPE nodejs_heap_space_size_used_bytes gauge
 nodejs_heap_space_size_used_bytes ${memUsage.heapUsed}
 
-# HELP nodejs_heap_space_size_total_bytes Process heap space size total from Node.js in bytes.
+# HELP nodejs_heap_space_size_total_bytes Process heap space total in bytes.
 # TYPE nodejs_heap_space_size_total_bytes gauge
 nodejs_heap_space_size_total_bytes ${memUsage.heapTotal}
 
-# HELP nodejs_rss_bytes Process resident set size from Node.js in bytes.
+# HELP nodejs_rss_bytes Resident set size in bytes.
 # TYPE nodejs_rss_bytes gauge
 nodejs_rss_bytes ${memUsage.rss}
 
@@ -228,55 +194,51 @@ nodejs_rss_bytes ${memUsage.rss}
 # TYPE process_uptime_seconds counter
 process_uptime_seconds ${process.uptime()}
 
-# HELP process_cpu_user_seconds_total Total user CPU time spent in seconds.
+# HELP process_cpu_user_seconds_total Total user CPU time in seconds.
 # TYPE process_cpu_user_seconds_total counter
 process_cpu_user_seconds_total ${cpuUsage.user / 1000000}
 
-# HELP process_cpu_system_seconds_total Total system CPU time spent in seconds.
+# HELP process_cpu_system_seconds_total Total system CPU time in seconds.
 # TYPE process_cpu_system_seconds_total counter
 process_cpu_system_seconds_total ${cpuUsage.system / 1000000}
-`.trim();
+    `.trim();
 
     res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
     res.send(metricsText);
-    
   } catch (error) {
     const err = error as Error;
-    logger.error('Erro ao gerar métricas', { message: err.message });
+    logger.error('Error generating metrics', { message: err.message });
     res.status(500).send(`# Error generating metrics: ${err.message}`);
   }
 };
 
-// Middleware para alertas automáticos
 export const alertMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const originalSend = res.send;
   const requestStartTime = Date.now();
 
-  res.send = function(chunk: any): Response<any> { // Tipagem mais precisa para o send
+  res.send = function (chunk: any): Response {
     const durationMs = Date.now() - requestStartTime;
     if (res.statusCode >= 500) {
-      logger.error('Erro Servidor (>=500) detectado', {
-        method: req.method,
-        url: req.originalUrl,
-        statusCode: res.statusCode,
-        ip: req.ip, // Certifique-se que 'trust proxy' está configurado no Express se necessário
-        userAgent: req.get('User-Agent'),
-        durationMs: durationMs,
-        // Não logar 'chunk' (body da resposta) por padrão, pode conter dados sensíveis
-        // ou ser muito grande. Se necessário, logar seletivamente ou um resumo.
-      });
-    } else if (res.statusCode >= 400) {
-        logger.warn('Erro Cliente (>=400) detectado', {
+      logger.error('Server error (>=500) detected', {
         method: req.method,
         url: req.originalUrl,
         statusCode: res.statusCode,
         ip: req.ip,
         userAgent: req.get('User-Agent'),
-        durationMs: durationMs,
+        durationMs
+      });
+    } else if (res.statusCode >= 400) {
+      logger.warn('Client error (>=400) detected', {
+        method: req.method,
+        url: req.originalUrl,
+        statusCode: res.statusCode,
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        durationMs
       });
     }
     return originalSend.call(this, chunk);
   };
-  
+
   next();
 };

@@ -1,10 +1,12 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt, { Secret, JwtPayload } from 'jsonwebtoken';
-import { AppError } from '../errors/AppError'; // Sua classe de erro customizada
-import { logger } from '../utils/logger';    // Seu logger Winston
-import { PapelUsuario } from '@prisma/client'; // Enum para o papel do usuário
+// src/middlewares/authMiddleware.ts - VERSÃO ATUALIZADA
 
-// Extensão do tipo Request do Express para incluir a propriedade user
+import { Request, Response, NextFunction } from 'express';
+import jwt, { Secret, JwtPayload, TokenExpiredError, JsonWebTokenError } from 'jsonwebtoken';
+import { AppError } from './AppError';
+import { logger } from '../utils/logger';
+import { PapelUsuario } from '@prisma/client';
+
+// REVISÃO: A extensão global para o Request do Express está perfeita. Mantida como está.
 declare global {
   namespace Express {
     interface Request {
@@ -17,101 +19,61 @@ declare global {
   }
 }
 
-// 1. Leitura e Validação Crítica do JWT_SECRET no nível do módulo
+// REVISÃO: A validação crítica do JWT_SECRET no início do módulo é uma prática de segurança excelente. Mantida.
 const JWT_SECRET_FROM_ENV = process.env.JWT_SECRET;
-
 if (!JWT_SECRET_FROM_ENV) {
-  const FATAL_ERROR_MSG = 'FATAL ERROR: JWT_SECRET não está definido nas variáveis de ambiente. A autenticação não pode funcionar sem ele.';
+  const FATAL_ERROR_MSG = 'FATAL ERROR: JWT_SECRET não está definido nas variáveis de ambiente.';
   logger.error(FATAL_ERROR_MSG);
-  // Em um ambiente de produção, é mais seguro encerrar a aplicação.
-  // Em desenvolvimento, lançar um erro pode ser suficiente para alertar o desenvolvedor.
+  // Em produção, encerrar o processo é a ação mais segura.
   if (process.env.NODE_ENV === 'production') {
-    process.exit(1); // Encerra o processo em produção
+    process.exit(1);
   } else {
-    // Este erro será lançado quando o módulo for carregado pela primeira vez.
-    // Isso impede que a aplicação inicie de forma inadequada.
     throw new Error(FATAL_ERROR_MSG);
   }
 }
-// Neste ponto, JWT_SECRET_FROM_ENV é garantidamente uma string.
-const JWT_SECRET_KEY_TO_USE: Secret = JWT_SECRET_FROM_ENV;
+const JWT_SECRET: Secret = JWT_SECRET_FROM_ENV;
 
-// 2. Interface para o payload esperado do JWT (para tipagem de req.user)
-// Esta interface deve corresponder ao payload que você define ao criar o token no AuthService.
 interface DecodedUserPayload extends JwtPayload {
   userId: number;
   email: string;
-  papel: PapelUsuario; // Usando o enum importado para forte tipagem
+  papel: PapelUsuario;
 }
 
-// 3. O Middleware de Autenticação
 export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
 
-  // Verifica se o cabeçalho de autorização existe e está no formato correto ("Bearer [token]")
-  if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
-    logger.warn('Tentativa de acesso não autenticado: cabeçalho Authorization ausente ou malformado.', {
-      path: req.path,
-      method: req.method,
-      ip: req.ip,
-    });
-    // Usa return para garantir que next() não seja chamado implicitamente
-    return next(new AppError('Token de autenticação não fornecido ou malformado.', 401));
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    logger.warn('Acesso negado: cabeçalho Authorization ausente ou malformado.', { path: req.path, ip: req.ip });
+    return next(new AppError('Token de autenticação não fornecido.', 401));
   }
 
-  // Extrai o token do cabeçalho (remove o "Bearer ")
   const token = authHeader.substring(7);
 
   try {
-    // Verifica e decodifica o token.
-    // jwt.verify lançará um erro se o token for inválido (expirado, assinatura incorreta, etc.)
-    const decoded = jwt.verify(token, JWT_SECRET_KEY_TO_USE) as DecodedUserPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as DecodedUserPayload;
 
-    // Validação adicional do conteúdo do payload decodificado (crucial para segurança e robustez)
-    if (
-      typeof decoded.userId !== 'number' ||
-      typeof decoded.email !== 'string' ||
-      !decoded.papel || // Verifica se a propriedade 'papel' existe
-      !Object.values(PapelUsuario).includes(decoded.papel as PapelUsuario) // Verifica se é um valor válido do enum
-    ) {
-      logger.warn('Payload do token JWT inválido: campos ausentes, tipos incorretos ou papel inválido.', {
-        decodedPayload: { userId: decoded.userId, email: decoded.email, papel: decoded.papel }, // Loga apenas campos relevantes
-        path: req.path,
-        ip: req.ip,
-      });
-      return next(new AppError('Token de autenticação com conteúdo inválido.', 401));
+    // REVISÃO: Validação do payload um pouco mais concisa.
+    const { userId, email, papel } = decoded;
+    if (typeof userId !== 'number' || typeof email !== 'string' || !Object.values(PapelUsuario).includes(papel)) {
+      logger.warn('Payload do token JWT inválido.', { payload: decoded, path: req.path, ip: req.ip });
+      return next(new AppError('Token com conteúdo inválido.', 401));
     }
 
-    // Adiciona as informações do usuário ao objeto 'req' para uso nos controllers.
-    req.user = {
-      userId: decoded.userId,
-      email: decoded.email,
-      papel: decoded.papel,
-    };
+    req.user = { userId, email, papel };
+    next();
 
-    logger.info('Usuário autenticado com sucesso via token', { userId: req.user.userId, path: req.path, method: req.method });
-    next(); // Token válido, prossegue para o próximo middleware ou controller
-
-  } catch (err: unknown) { // Captura 'unknown' e depois verifica o tipo do erro
-    const error = err instanceof Error ? err : new Error(String(err)); // Garante que temos um objeto Error
-
-    logger.warn('Falha na autenticação do token (jwt.verify falhou)', {
-      path: req.path,
-      method: req.method,
-      ip: req.ip,
-      errorName: error.name,
-      errorMessage: error.message,
-    });
-
-    if (error.name === 'TokenExpiredError') {
-      return next(new AppError('Token de autenticação expirado. Por favor, faça login novamente.', 401));
+  } catch (err) {
+    // REVISÃO: Tratamento de erro mais específico e direto.
+    if (err instanceof TokenExpiredError) {
+      logger.warn('Token expirado.', { path: req.path, ip: req.ip });
+      return next(new AppError('Sessão expirada. Por favor, faça login novamente.', 401));
     }
-    // JsonWebTokenError é uma classe base para vários erros de token (malformado, assinatura inválida, etc.)
-    if (error.name === 'JsonWebTokenError') {
+    if (err instanceof JsonWebTokenError) {
+      logger.warn('Token inválido.', { path: req.path, ip: req.ip, error: err.message });
       return next(new AppError('Token de autenticação inválido.', 401));
     }
     
-    // Para outros erros inesperados durante a verificação do token
-    return next(new AppError('Falha na autenticação. Não foi possível verificar o token.', 401));
+    logger.error('Erro inesperado na autenticação do token.', { path: req.path, error: (err as Error).message });
+    return next(new AppError('Falha na autenticação.', 500));
   }
 };

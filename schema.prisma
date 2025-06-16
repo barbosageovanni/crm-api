@@ -43,17 +43,18 @@ enum CategoriaDespesa {
 
 // MODELOS
 model Cliente {
-  id        Int      @id @default(autoincrement())
-  nome      String   @db.VarChar(100)
-  cnpjCpf   String?  @unique @db.VarChar(14)
-  tipo      TipoCliente
-  email     String?  @unique @db.VarChar(255)
-  telefone  String?  @db.VarChar(20)
-  endereco  String?  @db.Text
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id        Int      @id @default(autoincrement()) // Obrigatório, não nulo
+  nome      String   @db.VarChar(100)             // Obrigatório, não nulo
+  tipo      TipoCliente                          // Obrigatório, não nulo
+  ativo     Boolean  @default(true)               // Obrigatório, não nulo
+  createdAt DateTime @default(now())                // Obrigatório, não nulo
+  updatedAt DateTime @updatedAt                   // Obrigatório, não nulo
+  // Campos opcionais/nuláveis:
+  cnpjCpf   String?     @unique
+  email     String?     @unique
+  telefone  String?  // string | null
+  endereco  String?  // string | null
+  // ...
   transportes Transporte[]
 
   @@index([nome])
@@ -74,6 +75,15 @@ model Transporte {
   dataAtesto           DateTime?
   dataNotaFiscal       DateTime?
   descricaoNotaFiscal  String?   @db.Text
+
+   // NOVOS CAMPOS — adicione aqui:
+  placaVeiculo         String?
+  valorFrete           Float?
+  observacoes          String?
+  dataColeta           DateTime?
+  status               String?  // ou Enum, se preferir
+  numeroFatura         String?  // Adicionado para o campo 'fatura' do frontend
+
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
@@ -163,3 +173,4 @@ model CentroCusto {
 
   @@map("centros_custo")
 }
+

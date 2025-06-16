@@ -1,138 +1,212 @@
-// src/features/auth/authService.ts
-import apiClient from '../../services/apiClient';
-import {
-  type LoginUserDTO,
-  type RegisterUserDTO,
-  type AuthResponseDTO,
-  type UserProfileDTO,
-  type UpdateProfileDTO,
-  type ChangePasswordDTO
-} from './authDtos';
+import apiClient from '@/services/apiClient';
+import { isAPIError, isNetworkError } from '@/utils/apiErrorCheckers';
+import { MockAuthService } from '@/services/mockServer';
+import type {
+  LoginUserDTO,
+  RegisterApiPayload,
+  AuthApiResponse,
+  UserProfileDTO,
+  ForgotPasswordResponseDTO,
+  ChangePasswordDTO,
+} from '@/features/auth/types/auth.api';
+import { jwtDecode } from 'jwt-decode';
 
-class AuthService {
+// Interface para o payload decodificado do seu token JWT
+interface DecodedJwtToken {
+    userId: number;
+    email: string;
+    papel: UserProfileDTO['papel'];
+    exp: number; // UNIX timestamp (segundos)
+}
 
-  // Login do usuário
-  async login(loginData: LoginUserDTO): Promise<AuthResponseDTO> {
+export class AuthService {
+  private readonly useMock = import.meta.env.VITE_USE_MOCK_API === 'true';
+
+  constructor() {
+    this.setupAuthHeader();
+  }
+
+  /**
+   * Handler de erro centralizado que decide se usa um mock como fallback.
+   */
+  private async handleError<T>(
+    error: unknown,
+    mockFunction: () => Promise<{ data: T }>
+  ): Promise<T> {
+    console.error('❌ Erro na chamada da API:', error);
+
+    const isNotFoundError = isAPIError(error) && error.response?.status === 404;
+    const isConnectionError = isNetworkError(error);
+
+    if (this.useMock || isNotFoundError || isConnectionError) {
+      console.log('🎭 Usando mock como fallback...');
+      const mockResponse = await mockFunction();
+      return mockResponse.data;
+    }
+    
+    throw error;
+  }
+
+  // --- Login ---
+  async login(data: LoginUserDTO): Promise<AuthApiResponse> {
     try {
-      const response = await apiClient.post<AuthResponseDTO>('/auth/login', loginData);
-      // Armazena o token após o login bem-sucedido
-      if (response.data.token) {
-        localStorage.setItem('authToken', response.data.token);
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-      }
-      return response.data;
-    } catch (error) {
-      console.error('Erro no login:', error);
-      throw error;
+      console.log('🔐 Tentando login...', data.email);
+      const res = await apiClient.post<AuthApiResponse>('/auth/login', data);
+      this.storeAuthData(res.data.token, res.data.user);
+      return res.data;
+    } catch (err: unknown) {
+      return this.handleError(err, () => MockAuthService.mockLogin(data.email, data.senha));
     }
   }
 
-  // Registro de novo usuário
-  async register(registerData: RegisterUserDTO): Promise<AuthResponseDTO> {
+  // --- Registro ---
+  async register(data: RegisterApiPayload): Promise<AuthApiResponse> {
     try {
-      // CORREÇÃO: Não tenta mais desestruturar 'confirmaSenha', pois não existe em RegisterUserDTO.
-      // O objeto 'registerData' já deve vir formatado corretamente do frontend.
-      const response = await apiClient.post<AuthResponseDTO>('/auth/register', registerData);
-      // Armazena o token após o registro bem-sucedido (se a API retornar um)
-      if (response.data.token) {
-        localStorage.setItem('authToken', response.data.token);
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-      }
-      return response.data;
-    } catch (error) {
-      console.error('Erro no registro:', error);
-      throw error;
+      console.log('📝 Registrando usuário...', data.email);
+      const res = await apiClient.post<AuthApiResponse>('/auth/register', data);
+      this.storeAuthData(res.data.token, res.data.user);
+      return res.data;
+    } catch (err: unknown) {
+      return this.handleError(err, () => MockAuthService.mockRegister({
+        ...data,
+        papel: data.papel === 'VENDEDOR' ? 'USUARIO' : data.papel as 'ADMIN' | 'USUARIO' | 'GERENTE'
+      }));
     }
   }
 
-  // Obter perfil do usuário atual
+  // --- Esqueci a Senha ---
+  async forgotPassword(email: string): Promise<ForgotPasswordResponseDTO> {
+    if (!AuthService.validateEmail(email)) {
+      throw new Error('E-mail inválido.');
+    }
+    try {
+      console.log('📧 Solicitação de reset de senha:', email);
+      const res = await apiClient.post<ForgotPasswordResponseDTO>('/auth/forgot-password', { email });
+      return res.data;
+    } catch (err: unknown) {
+      return this.handleError(err, () => MockAuthService.mockForgotPassword(email));
+    }
+  }
+
+  // --- Alterar Senha ---
+  async changePassword(data: ChangePasswordDTO): Promise<void> {
+    try {
+      console.log('🔑 Alterando senha...');
+      await apiClient.post('/auth/change-password', data);
+    } catch (err: unknown) {
+      const mockResponse = await this.handleError(err, () => MockAuthService.mockChangePassword(data));
+      // Para changePassword, o mock retorna dados mas a API real não retorna nada
+      return;
+    }
+  }
+
+  // --- Obter Perfil do Usuário Autenticado ---
   async getProfile(): Promise<UserProfileDTO> {
     try {
-      const response = await apiClient.get<UserProfileDTO>('/auth/profile');
-      return response.data;
-    } catch (error) {
-      console.error('Erro ao obter perfil:', error);
-      // Se o erro for 401 (Não autorizado), desloga o usuário
-      if ((error as any).response?.status === 401) {
-        this.logout();
-      }
-      throw error;
+      const res = await apiClient.get<UserProfileDTO>('/auth/profile');
+      return res.data;
+    } catch (err: unknown) {
+      return this.handleError(err, () => MockAuthService.mockGetProfile());
     }
   }
 
-  // Atualizar perfil do usuário
-  async updateProfile(updateData: UpdateProfileDTO): Promise<UserProfileDTO> {
+  // --- Verificar Token ---
+  async verifyToken(): Promise<boolean> {
     try {
-      const response = await apiClient.put<UserProfileDTO>('/auth/profile', updateData);
-      return response.data;
-    } catch (error) {
-      console.error('Erro ao atualizar perfil:', error);
-      if ((error as any).response?.status === 401) {
-        this.logout();
+      const token = this.getCurrentToken();
+      if (!token) return false;
+
+      // Primeiro verifica se o token não está expirado localmente
+      try {
+        const decoded = jwtDecode<DecodedJwtToken>(token);
+        if (decoded.exp * 1000 <= Date.now()) {
+          return false;
+        }
+      } catch (decodeError) {
+        console.warn('Erro ao decodificar token:', decodeError);
+        return false;
       }
-      throw error;
+
+      // Verifica com o servidor se necessário
+      try {
+        await apiClient.get('/auth/verify-token');
+        return true;
+      } catch (err) {
+        // Se a rota não existir, usa mock ou verificação local
+        if (isAPIError(err) && err.response?.status === 404) {
+          // Usa mock para verificação
+          const mockResponse = await this.handleError(err, () => MockAuthService.mockVerifyToken());
+          return mockResponse.valid;
+        }
+        return false;
+      }
+    } catch (error) {
+      console.error('Erro ao verificar token:', error);
+      return false;
     }
   }
 
-  // Alterar senha
-  async changePassword(passwordData: ChangePasswordDTO): Promise<{ message: string }> {
-    try {
-      // Remove confirmaNovaSenha antes de enviar, se existir (validação apenas frontend)
-      const { confirmaNovaSenha, ...dataToSend } = passwordData;
-      const response = await apiClient.post<{ message: string }>('/auth/change-password', dataToSend);
-      return response.data;
-    } catch (error) {
-      console.error('Erro ao alterar senha:', error);
-      if ((error as any).response?.status === 401) {
-        this.logout();
-      }
-      throw error;
-    }
-  }
-
-  // Logout (limpa token local e header da API)
+  // --- Logout ---
   logout(): void {
     localStorage.removeItem('authToken');
-    delete apiClient.defaults.headers.common['Authorization'];
-    // Opcional: Redirecionar para a página de login ou notificar a aplicação
-    // window.location.href = '/login';
+    localStorage.removeItem('authUser');
+    if (apiClient.defaults.headers.common) {
+      delete apiClient.defaults.headers.common.Authorization;
+    }
+    MockAuthService.clearMockData(); // Limpa dados mock também
+    console.log("Usuário deslogado localmente.");
   }
-
-  // Verificar se o usuário está autenticado (checa apenas a existência do token)
-  // Uma verificação mais robusta envolveria validar a expiração do token
+  
+  // --- Métodos de Suporte Síncronos ---
   isAuthenticated(): boolean {
-    const token = localStorage.getItem('authToken');
-    return !!token;
+    const token = this.getCurrentToken();
+    if (!token) return false;
+    try {
+      const decoded = jwtDecode<DecodedJwtToken>(token);
+      return decoded.exp * 1000 > Date.now();
+    } catch {
+      this.logout();
+      return false;
+    }
   }
 
-  // Obter token atual
-  getToken(): string | null {
+  getCurrentToken(): string | null {
     return localStorage.getItem('authToken');
   }
 
-  // Configura o header de autorização para o apiClient (útil ao iniciar a app)
+  getCurrentUser(): UserProfileDTO | null {
+    try {
+      const str = localStorage.getItem('authUser');
+      return str ? (JSON.parse(str) as UserProfileDTO) : null;
+    } catch {
+      return null;
+    }
+  }
+  
   setupAuthHeader(): void {
-    const token = this.getToken();
-    if (token) {
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    const token = this.getCurrentToken();
+    if (token && apiClient.defaults.headers.common) {
+      apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
     }
   }
 
-  // Métodos estáticos de validação (podem ser movidos para utils se preferir)
-  static validateEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  // --- Métodos Privados e Estáticos ---
+  private storeAuthData(token: string, user: UserProfileDTO): void {
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('authUser', JSON.stringify(user));
+    if (apiClient.defaults.headers.common) {
+      apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
+    }
   }
 
-  static validatePassword(password: string): boolean {
+  public static validateEmail(email: string): boolean {
+    if (!email) return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  }
+
+  public static validatePassword(password: string): boolean {
     return password.length >= 6;
   }
 }
 
-// Cria e exporta uma instância única do serviço
-const authServiceInstance = new AuthService();
-// Configura o header de autorização ao carregar o módulo (se houver token)
-authServiceInstance.setupAuthHeader();
-
-export default authServiceInstance;
-
+export default new AuthService();

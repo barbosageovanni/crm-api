@@ -22,6 +22,8 @@ import ExitToApp from '@mui/icons-material/ExitToApp';
 import Settings from '@mui/icons-material/Settings';
 import Dashboard from '@mui/icons-material/Dashboard';
 import People from '@mui/icons-material/People';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping'; // Importar ícone de transporte
+import GroupIcon from '@mui/icons-material/Group'; // Importar ícone de usuários
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -88,12 +90,40 @@ export default function Navbar() {
           >
             Clientes
           </Button>
+
+          {/* Botão para Transportes */}
+          <Button
+            color="inherit"
+            startIcon={<LocalShippingIcon />}
+            onClick={() => navigate('/transportes')}
+            variant={isActive('/transportes') ? 'outlined' : 'text'}
+            sx={{ 
+              color: 'inherit',
+              borderColor: isActive('/transportes') ? 'rgba(255,255,255,0.5)' : 'transparent'
+            }}
+          >
+            Transportes
+          </Button>
+
+          {/* Novo Botão para Usuários */}
+          <Button
+            color="inherit"
+            startIcon={<GroupIcon />}
+            onClick={() => navigate('/users')}
+            variant={isActive('/users') ? 'outlined' : 'text'}
+            sx={{ 
+              color: 'inherit',
+              borderColor: isActive('/users') ? 'rgba(255,255,255,0.5)' : 'transparent'
+            }}
+          >
+            Usuários
+          </Button>
         </Box>
 
         {/* Menu do Usuário */}
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Typography variant="body2" sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}>
-            Olá, {user?.name || 'Usuário'}
+            Olá, {user?.nome || 'Usuário'}
           </Typography>
           
           <IconButton
@@ -105,7 +135,7 @@ export default function Navbar() {
             color="inherit"
           >
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+              {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
             </Avatar>
           </IconButton>
           
@@ -152,3 +182,5 @@ export default function Navbar() {
     </AppBar>
   );
 }
+
+

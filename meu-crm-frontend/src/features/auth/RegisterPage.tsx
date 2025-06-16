@@ -12,7 +12,10 @@ import {
   validatePasswordConfirmation
 } from './authServiceFrontend';
 // Importa tanto o TIPO 'PapelUsuario' quanto o ENUM 'PapelUsuarioEnum'
-import { type RegisterUserDTO, type PapelUsuario, PapelUsuarioEnum } from './authDtos';
+import type {  RegisterUserDTO } from '@/features/auth/types/auth.api';
+import { PapelUsuario, PapelUsuarioEnum } from '@/features/auth/types/auth.enums';
+
+// ...
 
 // Componentes MUI
 import Avatar from '@mui/material/Avatar';

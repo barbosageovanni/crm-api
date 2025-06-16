@@ -1,146 +1,368 @@
-// src/contexts/AuthContext.tsx
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import type { ReactNode } from 'react'; // <-- Importação de tipo separada
-import apiClient from '../services/apiClient';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import authService from '../features/auth/authService';
-// <-- Garante que estas importações também sejam type-only
-import type { LoginUserDTO, UserProfileDTO, PapelUsuario } from '../features/auth/authDtos';
+import type { 
+  LoginUserDTO, 
+  RegisterUserDTO, 
+  ChangePasswordDTO,
+  UserProfileDTO,
+} from '@/features/auth/types/auth.api';
+import type {
+  AuthContextType, 
+  AuthState, 
+} from '@/features/auth/types/auth.state';
+import type {
+  User 
+} from '@/features/auth/types/auth.enums';
 
-interface AuthState {
-  isAuthenticated: boolean;
-  user: UserProfileDTO | null;
-  token: string | null;
-}
+// Estados iniciais
+const initialState: AuthState = {
+  user: null,
+  token: null,
+  isAuthenticated: false,
+  isLoading: true,
+  error: null,
+};
 
-interface AuthContextType extends AuthState {
-  login: (loginData: LoginUserDTO) => Promise<void>;
-  logout: () => void;
-  updateUser: (user: UserProfileDTO) => void;
-  isLoading: boolean;
-}
+// Tipos de ações do reducer
+type AuthAction =
+  | { type: 'AUTH_START' }
+  | { type: 'AUTH_SUCCESS'; payload: { user: User; token: string } }
+  | { type: 'AUTH_FAILURE'; payload: string }
+  | { type: 'AUTH_LOGOUT' }
+  | { type: 'CLEAR_ERROR' }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'UPDATE_USER'; payload: Partial<User> };
 
+// Reducer de autenticação
+const authReducer = (state: AuthState, action: AuthAction): AuthState => {
+  switch (action.type) {
+    case 'AUTH_START':
+      return {
+        ...state,
+        isLoading: true,
+        error: null,
+      };
+
+    case 'AUTH_SUCCESS':
+      return {
+        ...state,
+        user: action.payload.user,
+        token: action.payload.token,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      };
+
+    case 'AUTH_FAILURE':
+      return {
+        ...state,
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: action.payload,
+      };
+
+    case 'AUTH_LOGOUT':
+      return {
+        ...state,
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+      };
+
+    case 'CLEAR_ERROR':
+      return {
+        ...state,
+        error: null,
+      };
+
+    case 'SET_LOADING':
+      return {
+        ...state,
+        isLoading: action.payload,
+      };
+
+    case 'UPDATE_USER':
+      return {
+        ...state,
+        user: state.user ? { ...state.user, ...action.payload } : null,
+      };
+
+    default:
+      return state;
+  }
+};
+
+// Contexto de autenticação
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Provider de autenticação
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [authState, setAuthState] = useState<AuthState>({
-    isAuthenticated: false,
-    user: null,
-    token: localStorage.getItem('authToken'),
-  });
-  // Inicializa como true para mostrar loading até a verificação inicial terminar
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+// Função auxiliar para converter UserProfileDTO para User
+const convertUserProfileToUser = (userProfile: UserProfileDTO): User => {
+  // Mapeia papéis que não existem no User para papéis válidos
+  const mapPapel = (papel: string): 'ADMIN' | 'GERENTE' | 'USUARIO' => {
+    switch (papel) {
+      case 'ADMIN':
+        return 'ADMIN';
+      case 'GERENTE':
+        return 'GERENTE';
+      case 'VENDEDOR':
+        return 'USUARIO'; // Mapeia VENDEDOR para USUARIO
+      case 'USUARIO':
+        return 'USUARIO';
+      default:
+        return 'USUARIO'; // Valor padrão
+    }
+  };
 
-  // Efeito para verificar o token no localStorage ao carregar a aplicação
+  return {
+    id: String(userProfile.id), // Converte number para string
+    nome: userProfile.nome,
+    email: userProfile.email,
+    papel: mapPapel(userProfile.papel),
+    ativo: userProfile.ativo,
+    createdAt: userProfile.createdAt,
+    updatedAt: userProfile.updatedAt,
+  };
+};
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [state, dispatch] = useReducer(authReducer, initialState);
+
+  // Verifica autenticação ao carregar a aplicação
   useEffect(() => {
     const initializeAuth = async () => {
-      const token = localStorage.getItem('authToken');
-      
-      if (token) {
-        try {
-          console.log("AuthContext: Token encontrado, tentando validar...");
-          // Configura o token no apiClient
-          apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          
-          // Tenta obter o perfil do usuário para validar o token
-          const user = await authService.getProfile();
-          console.log("AuthContext: Perfil obtido com sucesso:", user);
-          
-          setAuthState({
-            isAuthenticated: true,
-            user,
-            token,
-          });
-        } catch (error: any) {
-          console.error('AuthContext: Erro ao validar token ou obter perfil:', error.response?.data || error.message || error);
-          // Remove token inválido
-          localStorage.removeItem('authToken');
-          delete apiClient.defaults.headers.common['Authorization'];
-          setAuthState({
-            isAuthenticated: false,
-            user: null,
-            token: null,
-          });
-        } finally {
-          // Garante que o loading termine mesmo se houver erro
-          console.log("AuthContext: Finalizando inicialização, setLoading(false)");
-          setIsLoading(false);
+      try {
+        dispatch({ type: 'AUTH_START' });
+
+        const token = authService.getCurrentToken();
+        const userProfile = authService.getCurrentUser();
+
+        if (token && userProfile) {
+          try {
+            const isValid = await authService.verifyToken();
+            
+            if (isValid) {
+              const user = convertUserProfileToUser(userProfile);
+              dispatch({ 
+                type: 'AUTH_SUCCESS', 
+                payload: { user, token } 
+              });
+            } else {
+              authService.logout();
+              dispatch({ type: 'AUTH_LOGOUT' });
+            }
+          } catch (verifyError) {
+            console.warn('Erro ao verificar token, fazendo logout:', verifyError);
+            authService.logout();
+            dispatch({ type: 'AUTH_LOGOUT' });
+          }
+        } else {
+          dispatch({ type: 'AUTH_LOGOUT' });
         }
-      } else {
-        // Se não há token, finaliza o loading
-        console.log("AuthContext: Nenhum token encontrado, setLoading(false)");
-        setIsLoading(false);
+      } catch (error) {
+        console.error('Erro ao inicializar autenticação:', error);
+        authService.logout();
+        dispatch({ type: 'AUTH_LOGOUT' });
       }
     };
 
     initializeAuth();
-  }, []); // Executa apenas uma vez na montagem
+  }, []);
 
-  const login = async (loginData: LoginUserDTO) => {
-    // Não precisa setar isLoading aqui, pois a página de login já pode ter seu próprio loading
-    // setIsLoading(true); 
+  // Função de login
+  const login = async (credentials: LoginUserDTO): Promise<void> => {
     try {
-      const response = await authService.login(loginData);
-      const { user, token } = response;
+      dispatch({ type: 'AUTH_START' });
 
-      // Salva o token e configura o apiClient
-      localStorage.setItem('authToken', token);
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      const response = await authService.login(credentials);
+      const user = convertUserProfileToUser(response.user);
       
-      setAuthState({
-        isAuthenticated: true,
-        user,
-        token,
+      dispatch({ 
+        type: 'AUTH_SUCCESS', 
+        payload: { 
+          user, 
+          token: response.token 
+        } 
       });
-      // O redirecionamento ocorrerá no componente LoginPage ou pelo PublicRoute
-    } catch (error) {
-      // Limpa dados em caso de erro
-      localStorage.removeItem('authToken');
-      delete apiClient.defaults.headers.common['Authorization'];
-      setAuthState({
-        isAuthenticated: false,
-        user: null,
-        token: null,
-      });
-      throw error; // Re-lança o erro para ser tratado no componente LoginPage
-    } finally {
-      // Não precisa setar isLoading aqui
-      // setIsLoading(false);
+    } catch (error: any) {
+      console.error('Erro no login (AuthContext):', error);
+      
+      let errorMessage = 'Erro ao fazer login';
+      
+      if (error.response?.status === 401) {
+        errorMessage = 'E-mail ou senha incorretos';
+      } else if (error.response?.status === 429) {
+        errorMessage = 'Muitas tentativas. Tente novamente em alguns minutos';
+      } else if (error.response?.status >= 500) {
+        errorMessage = 'Erro do servidor. Tente novamente mais tarde';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
+      throw error;
     }
   };
 
-  const logout = () => {
-    // Remove token e limpa estado
+  // Função de registro
+  const register = async (userData: RegisterUserDTO): Promise<void> => {
+    try {
+      dispatch({ type: 'AUTH_START' });
+
+      // Garantir que o papel não seja undefined e converter para RegisterApiPayload
+      const registerData: RegisterUserDTO & { papel: NonNullable<RegisterUserDTO['papel']> } = {
+        ...userData,
+        papel: userData.papel || 'USUARIO'
+      };
+
+      const response = await authService.register(registerData);
+      const user = convertUserProfileToUser(response.user);
+      
+      dispatch({ 
+        type: 'AUTH_SUCCESS', 
+        payload: { 
+          user, 
+          token: response.token 
+        } 
+      });
+    } catch (error: any) {
+      console.error('Erro no registro (AuthContext):', error);
+      const errorMessage = error.message || 'Erro ao registrar usuário';
+      dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
+      throw error;
+    }
+  };
+
+  // Função de logout
+  const logout = (): void => {
     authService.logout();
-    setAuthState({
-      isAuthenticated: false,
-      user: null,
-      token: null,
-    });
-    // O redirecionamento ocorrerá pelo ProtectedRoute
+    dispatch({ type: 'AUTH_LOGOUT' });
   };
 
-  const updateUser = (user: UserProfileDTO) => {
-    setAuthState(prevState => ({
-      ...prevState,
-      user,
-    }));
+  // Função para resetar senha
+  const resetPassword = async (email: string): Promise<void> => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      
+      await authService.forgotPassword(email);
+      
+      dispatch({ type: 'SET_LOADING', payload: false });
+    } catch (error: any) {
+      console.error('Erro no reset de senha (AuthContext):', error);
+      
+      dispatch({ type: 'SET_LOADING', payload: false });
+      
+      if (!error.message?.includes('Rota não encontrada')) {
+        const errorMessage = error.message || 'Erro ao solicitar reset de senha';
+        dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
+      }
+      
+      throw error;
+    }
   };
 
+  // Função para alterar senha
+  const changePassword = async (passwords: ChangePasswordDTO): Promise<void> => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      
+      await authService.changePassword(passwords);
+      
+      dispatch({ type: 'SET_LOADING', payload: false });
+    } catch (error: any) {
+      dispatch({ type: 'SET_LOADING', payload: false });
+      const errorMessage = error.message || 'Erro ao alterar senha';
+      dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
+      throw error;
+    }
+  };
+
+  // Função para verificar token
+  const verifyToken = async (): Promise<boolean> => {
+    try {
+      const isValid = await authService.verifyToken();
+      
+      if (!isValid && state.isAuthenticated) {
+        dispatch({ type: 'AUTH_LOGOUT' });
+      }
+      
+      return isValid;
+    } catch (error) {
+      console.error('Erro ao verificar token:', error);
+      if (state.isAuthenticated) {
+        dispatch({ type: 'AUTH_LOGOUT' });
+      }
+      return false;
+    }
+  };
+
+  // Função para limpar erro
+  const clearError = (): void => {
+    dispatch({ type: 'CLEAR_ERROR' });
+  };
+
+  // Função para obter usuário atual
+  const getCurrentUser = (): UserProfileDTO | null => {
+    if (state.user) {
+      // Converte User de volta para UserProfileDTO
+      return {
+        id: Number(state.user.id),
+        nome: state.user.nome,
+        email: state.user.email,
+        papel: state.user.papel || 'USUARIO',
+        ativo: state.user.ativo ?? true,
+        createdAt: state.user.createdAt || '',
+        updatedAt: state.user.updatedAt || '',
+      };
+    }
+    
+    return authService.getCurrentUser();
+  };
+
+  // Função para obter token atual
+  const getCurrentToken = (): string | null => {
+    return state.token || authService.getCurrentToken();
+  };
+
+  // Valor do contexto
   const contextValue: AuthContextType = {
-    ...authState,
+    // Estado
+    user: state.user ? {
+      id: Number(state.user.id),
+      nome: state.user.nome,
+      email: state.user.email,
+      papel: state.user.papel || 'USUARIO',
+      ativo: state.user.ativo ?? true,
+      createdAt: state.user.createdAt || '',
+      updatedAt: state.user.updatedAt || '',
+    } : null,
+    token: state.token,
+    isAuthenticated: state.isAuthenticated,
+    isLoading: state.isLoading,
+    error: state.error,
+    
+    // Métodos
     login,
+    register,
     logout,
-    updateUser,
-    isLoading, // O isLoading do contexto reflete a validação inicial do token
+    resetPassword,
+    changePassword,
+    verifyToken,
+    clearError,
+    
+    // Utilitários
+    getCurrentUser,
+    getCurrentToken,
   };
 
-  // O App.tsx usa o isLoading do contexto para exibir o spinner inicial
-  // Se isLoading for false e isAuthenticated for false, ProtectedRoute redireciona para /login
-  // Se isLoading for false e isAuthenticated for true, ProtectedRoute renderiza children
   return (
     <AuthContext.Provider value={contextValue}>
       {children}
@@ -148,12 +370,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
-// Hook customizado para usar o AuthContext
+// Hook personalizado para usar o contexto
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
+  
   if (context === undefined) {
     throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   }
+  
   return context;
 };
 
+export default AuthContext;

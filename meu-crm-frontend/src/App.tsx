@@ -8,7 +8,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from './contexts/AuthContext';
 
 // Layout Components
-import MainLayout from './components/layout/MainLayout';
+import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 
 // Page Components
@@ -16,9 +16,9 @@ import LoginPage from './features/auth/LoginPage';
 import DashboardPage from './features/dashboard/DashboardPage';
 import ClientListPage from './features/clients/ClientListPage';
 import ClientForm from './features/clients/ClientForm';
-
-// Componentes de Usuários
-import UserRoutes from './features/users/UserRoutes';
+import TransporteListPage from './features/transportes/TransporteListPage'; // Importar TransporteListPage
+import TransporteForm from './features/transportes/TransporteForm';     // Importar TransporteForm
+import UserListPage from './features/users/UserListPage'; // Importar UserListPage
 
 // Criar tema personalizado
 const theme = createTheme({
@@ -78,12 +78,12 @@ function App() {
             {/* Rota de Login (pública) */}
             <Route path="/login" element={<LoginPage />} />
             
-            {/* Rotas protegidas com MainLayout */}
+            {/* Rotas protegidas com layout */}
             <Route
               path="/"
               element={
                 <ProtectedRoute>
-                  <MainLayout />
+                  <Layout />
                 </ProtectedRoute>
               }
             >
@@ -97,13 +97,18 @@ function App() {
               <Route path="clients" element={<ClientListPage />} />
               <Route path="clients/new" element={<ClientForm />} />
               <Route path="clients/:id/edit" element={<ClientForm />} />
-              
+
+              {/* Rotas de Transportes */}
+              <Route path="transportes" element={<TransporteListPage />} />
+              <Route path="transportes/new" element={<TransporteForm />} />
+              <Route path="transportes/:id/edit" element={<TransporteForm />} />
+
               {/* Rotas de Usuários */}
-              <Route path="users/*" element={<UserRoutes />} />
+              <Route path="users" element={<UserListPage />} />
             </Route>
             
-            {/* Rota catch-all - redireciona para dashboard se autenticado, senão para login */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} /> 
+            {/* Rota catch-all - redireciona para dashboard */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Router>
       </AuthProvider>
@@ -112,3 +117,4 @@ function App() {
 }
 
 export default App;
+

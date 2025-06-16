@@ -84,6 +84,7 @@ export default function UserRoutes() {
       <Route path="/" element={<UserListPage />} />
       <Route path="/new" element={<UserForm />} />
       <Route path="/:id/edit" element={<EditUserPage />} />
+      <Route path="/:id/edit" element={<EditUserPage />} />
       <Route path="/:id/reset-password" element={<ResetPasswordForm />} />
     </Routes>
   );

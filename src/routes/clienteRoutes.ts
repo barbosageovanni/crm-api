@@ -1,35 +1,56 @@
-// src/routes/clienteRoutes.ts - Versão com Autenticação
+// src/routes/clienteRoutes.ts - VERSÃO FINAL ORQUESTRADA
 
 import { Router } from 'express';
-import * as controller from '../controllers/clienteController';
-import { validateCreateCliente, validateUpdateCliente, handleValidationErrors } from '../middlewares/clienteValidator'; // Seus middlewares de validação
-import { authMiddleware } from '../middlewares/authMiddleware'; // 1. Importe o middleware de autenticação
+import * as clienteController from '../controllers/clienteController';
+import { 
+    validateCreateCliente, 
+    validateUpdateCliente, 
+    validateListClientes,
+    validateIdParam
+} from '../middlewares/clienteValidator';
+import { handleValidationErrors } from '../middlewares/validationErrorHandler';
+import { authMiddleware } from '../middlewares/authMiddleware';
 
 const router = Router();
 
-// 2. Aplica o middleware de autenticação a TODAS as rotas definidas abaixo neste arquivo.
-// Qualquer requisição para /clientes, /clientes/:id, etc., passará primeiro pelo authMiddleware.
+// Aplica autenticação para todas as rotas de clientes
 router.use(authMiddleware);
 
-// Definição das Rotas (agora protegidas)
-router.get('/', controller.list);
+// Definição das Rotas com orquestração clara
+router.get(
+    '/',
+    validateListClientes,   // 1. Valida os parâmetros da query
+    handleValidationErrors, // 2. Trata erros de validação
+    clienteController.list  // 3. Executa o controller
+);
 
-router.get('/:id', controller.show);
+router.get(
+    '/:id',
+    validateIdParam,
+    handleValidationErrors,
+    clienteController.show
+);
 
 router.post(
   '/',
-  validateCreateCliente,  // Primeiro valida os dados
-  handleValidationErrors, // Depois lida com os erros de validação
-  controller.create       // Só então executa o controller se tudo estiver ok
+  validateCreateCliente,
+  handleValidationErrors,
+  clienteController.create
 );
 
 router.put(
   '/:id',
-  validateUpdateCliente,
+  validateIdParam,          // Valida o ID na rota
+  validateUpdateCliente,    // Valida o corpo da requisição
   handleValidationErrors,
-  controller.update
+  clienteController.update
 );
 
-router.delete('/:id', controller.remove);
+router.delete(
+    '/:id',
+    validateIdParam,
+    handleValidationErrors,
+    clienteController.remove
+);
 
 export default router;

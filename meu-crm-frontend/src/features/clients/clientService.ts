@@ -63,7 +63,7 @@ export interface ClienteFilters {
   email?: string;
 }
 
-const CLIENTES_ROUTE = "/clientes";
+const CLIENTES_ROUTE = "/api/clientes"; // Corrigido para incluir /api
 
 const clientService = {
   // Buscar clientes com paginação e filtros
@@ -140,3 +140,4 @@ const clientService = {
 };
 
 export default clientService;
+
