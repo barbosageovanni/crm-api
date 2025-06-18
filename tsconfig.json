@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "compilerOptions": {
     "target": "ES2022",
@@ -42,3 +43,49 @@
 }
 
 
+=======
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "typeRoots": ["./node_modules/@types", "./src/vite-env.d.ts"],
+    "esModuleInterop": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Path mapping */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/contexts/*": ["./src/contexts/*"],
+      "@/features/*": ["./src/features/*"],
+      "@/utils/*": ["./src/utils/*"],
+      "@/types/*": ["./src/types/*"],
+      "@/hooks/*": ["./src/hooks/*"],
+      "@/services/*": ["./src/services/*"],
+      "@/constants/*": ["./src/constants/*"],
+      "@/dtos/*": ["src/dtos/*"],
+    }
+  },
+  "include": ["src/**/*", "src/vite-env.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}
+
+
+>>>>>>> 6fe4ea92990c8b49760e64d63af1d025d8c88b96
