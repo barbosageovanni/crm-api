@@ -1,21 +1,21 @@
-<<<<<<< HEAD
 {
   "compilerOptions": {
     "target": "ES2022",
-    "useDefineForClassFields": true,
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
+    "useDefineForClassFields": true, // Manter se for necessário para Node.js
+    "lib": ["ES2023"], // Apenas ES2023 para backend, DOM/DOM.Iterable são para navegador
+    "module": "CommonJS", // Essencial para CommonJS
     "skipLibCheck": true,
-    "typeRoots": ["./node_modules/@types", "./src/vite-env.d.ts"],
+    "typeRoots": ["./node_modules/@types"], // Removi "./src/vite-env.d.ts" se é backend puro
     "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
 
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    // Configurações para resolução de módulos no Node.js
+    "moduleResolution": "node", // Usar 'node' com CommonJS
+    "allowImportingTsExtensions": false, // Não necessário para CommonJS
     "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
+    "isolatedModules": false, // Não é comum para APIs Node.js puras
+    "noEmit": true, // Manter se você usa ts-node e não gera JS
+    // "jsx": "react-jsx", // Remover se for apenas backend
 
     /* Linting */
     "strict": true,
@@ -35,57 +35,9 @@
       "@/hooks/*": ["./src/hooks/*"],
       "@/services/*": ["./src/services/*"],
       "@/constants/*": ["./src/constants/*"],
-      "@/dtos/*": ["src/dtos/*"],
+      "@/dtos/*": ["src/dtos/*"]
     }
   },
-  "include": ["src/**/*", "src/vite-env.d.ts"],
+  "include": ["src/**/*.ts"], // Inclua apenas os arquivos .ts da sua API
   "exclude": ["node_modules", "dist"]
 }
-
-
-=======
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "useDefineForClassFields": true,
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
-    "typeRoots": ["./node_modules/@types", "./src/vite-env.d.ts"],
-    "esModuleInterop": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
-
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true,
-
-    /* Path mapping */
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"],
-      "@/components/*": ["./src/components/*"],
-      "@/contexts/*": ["./src/contexts/*"],
-      "@/features/*": ["./src/features/*"],
-      "@/utils/*": ["./src/utils/*"],
-      "@/types/*": ["./src/types/*"],
-      "@/hooks/*": ["./src/hooks/*"],
-      "@/services/*": ["./src/services/*"],
-      "@/constants/*": ["./src/constants/*"],
-      "@/dtos/*": ["src/dtos/*"],
-    }
-  },
-  "include": ["src/**/*", "src/vite-env.d.ts"],
-  "exclude": ["node_modules", "dist"]
-}
-
-
->>>>>>> 6fe4ea92990c8b49760e64d63af1d025d8c88b96

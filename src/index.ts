@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // src/index.ts - Versão Corrigida e Unificada
 
 import express, { Request, Response, NextFunction } from 'express';
@@ -519,6 +518,3 @@ if (process.env.NODE_ENV !== 'test') {
     gracefulShutdown('unhandledRejection');
   });
 }
-
->>>>>>> 6fe4ea92990c8b49760e64d63af1d025d8c88b96
-export default app;
