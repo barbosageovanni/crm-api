@@ -3,12 +3,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.userController = void 0;
 const express_validator_1 = require("express-validator");
 const userServiceBackend_1 = require("../services/userServiceBackend");
-const AppError_1 = require("../errors/AppError");
+const AppError_1 = require("../middlewares/AppError");
 // Helper para lidar com erros de validação
 const handleValidationErrors = (req) => {
     const errors = (0, express_validator_1.validationResult)(req);
     if (!errors.isEmpty()) {
-        throw new AppError_1.AppError('Erro de validação', 400, errors.array());
+        const structuredErrors = errors.array().map(error => ({
+            field: error.type === 'field' ? error.path : undefined,
+            message: error.msg,
+            value: error.type === 'field' ? error.value : undefined
+        }));
+        throw new AppError_1.AppError('Erro de validação', 400, 'VALIDATION_ERROR', structuredErrors);
     }
 };
 exports.userController = {

@@ -37,11 +37,16 @@ apiClient.interceptors.response.use(
     // Qualquer código de status que caia fora do range de 2xx causa o acionamento desta função
     if (error.response && error.response.status === 401) {
       // Exemplo: Se for 401 (Não autorizado), deslogar o usuário
-      console.error('Erro 401: Não autorizado. Limpando token e redirecionando para login...');
+      console.error('Erro 401: Não autorizado. Limpando token...');
       localStorage.removeItem('authToken');
-      // Força o reload para que o AuthContext detecte a ausência do token
-      // Idealmente, chame uma função de logout do seu AuthContext aqui
-      window.location.href = '/login'; // Redireciona para a página de login
+      localStorage.removeItem('authUser');
+      
+      // CORREÇÃO: Em vez de usar window.location.href, que pode causar navegação direta,
+      // apenas limpamos os dados e deixamos o AuthContext detectar a mudança
+      // O AuthContext vai redirecionar corretamente usando o React Router
+      
+      // Dispara evento customizado para notificar o AuthContext
+      window.dispatchEvent(new CustomEvent('auth-logout'));
     }
     // É importante rejeitar a promise para que o erro possa ser tratado no local da chamada (catch)
     return Promise.reject(error);

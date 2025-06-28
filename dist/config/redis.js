@@ -4,12 +4,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CACHE_TTL = exports.CACHE_KEYS = exports.redisService = void 0;
-const ioredis_1 = __importDefault(require("ioredis"));
+const ioredis_1 = __importDefault(require("ioredis")); // Certifique-se que "ioredis" está instalado (npm install ioredis)
 const logger_1 = require("../utils/logger");
 class RedisService {
+    client;
+    isConnected = false;
+    connectionAttempted = false;
     constructor() {
-        this.isConnected = false;
-        this.connectionAttempted = false;
         const options = {
             host: process.env.REDIS_HOST || 'localhost',
             port: parseInt(process.env.REDIS_PORT || '6379'),
@@ -28,10 +29,10 @@ class RedisService {
             enableReadyCheck: true,
             maxRetriesPerRequest: 2, // Reduzido de 3 para 2
             lazyConnect: true,
-            // Adicionar timeout para evitar conexões que ficam pendentes
+            // Adiciona timeout para evitar conexões pendentes
             connectTimeout: 10000, // 10 segundos
             commandTimeout: 5000, // 5 segundos por comando
-            // Desabilitar ping automático durante reconexão
+            // Desabilitar auto-pipelining durante reconexão
             enableAutoPipelining: false,
         };
         if (process.env.REDIS_PASSWORD && process.env.REDIS_PASSWORD.length > 0) {
@@ -49,7 +50,7 @@ class RedisService {
             this.isConnected = true;
         });
         this.client.on('error', (error) => {
-            // Não logar erros de conexão se ainda não tentamos conectar explicitamente
+            // Evitar logar erros de conexão se ainda não houve tentativa explícita
             if (!this.connectionAttempted && error.message.includes('ECONNREFUSED')) {
                 logger_1.logger.debug('Redis: Conexão recusada (serviço pode estar indisponível)');
             }
@@ -102,7 +103,7 @@ class RedisService {
             logger_1.logger.error('Redis: Falha na conexão inicial', {
                 message: err.message,
                 host: process.env.REDIS_HOST || 'localhost',
-                port: process.env.REDIS_PORT || '6379'
+                port: process.env.REDIS_PORT || '5555'
             });
             this.isConnected = false;
             throw err;
@@ -197,13 +198,13 @@ class RedisService {
         }
     }
     /**
-     * Verifica se está saudável e pronto
+     * Verifica se o cliente está saudável e pronto
      */
     isHealthy() {
         return this.isConnected && this.client.status === 'ready';
     }
     /**
-     * Testa conectividade com ping
+     * Testa a conectividade com o comando ping
      */
     async ping() {
         try {
@@ -219,7 +220,7 @@ class RedisService {
         }
     }
     /**
-     * Encerra conexão graciosamente
+     * Encerra a conexão de forma graciosa
      */
     async disconnect() {
         if (this.client.status !== 'end') {
@@ -237,7 +238,7 @@ class RedisService {
         }
     }
     /**
-     * Informações de status para debug
+     * Retorna informações de status para debug
      */
     getStatus() {
         return {
@@ -249,7 +250,7 @@ class RedisService {
 }
 // Singleton instance
 exports.redisService = new RedisService();
-// Constantes de Cache
+// Constantes de cache
 exports.CACHE_KEYS = {
     CLIENTE_LIST: 'cliente:list',
     CLIENTE_BY_ID: 'cliente:id',

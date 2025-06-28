@@ -4,7 +4,7 @@ import { CreateTransporteDTO, UpdateTransporteDTO, TransporteDTO } from './trans
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 class TransporteService {
-  private baseUrl = `${API_BASE_URL}/api/transportes`;
+  private baseUrl = `${API_BASE_URL}/transportes`;
 
   async createTransporte(data: CreateTransporteDTO ): Promise<TransporteDTO> {
     const response = await fetch(this.baseUrl, {

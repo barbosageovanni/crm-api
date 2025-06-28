@@ -9,7 +9,12 @@ import type { UserFilterParams } from '../dtos/userDtos'; // Importando do arqui
 const handleValidationErrors = (req: Request) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    throw new AppError('Erro de validação', 400, errors.array());
+    const structuredErrors = errors.array().map(error => ({
+      field: error.type === 'field' ? (error as any).path : undefined,
+      message: error.msg,
+      value: error.type === 'field' ? (error as any).value : undefined
+    }));
+    throw new AppError('Erro de validação', 400, 'VALIDATION_ERROR', structuredErrors);
   }
 };
 

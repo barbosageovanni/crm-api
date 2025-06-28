@@ -19,6 +19,7 @@ import ClientForm from './features/clients/ClientForm';
 import TransporteListPage from './features/transportes/TransporteListPage'; // Importar TransporteListPage
 import TransporteForm from './features/transportes/TransporteForm';     // Importar TransporteForm
 import UserListPage from './features/users/UserListPage'; // Importar UserListPage
+import UserForm from './features/users/UserForm'; // Importar UserForm
 
 // Criar tema personalizado
 const theme = createTheme({
@@ -105,6 +106,8 @@ function App() {
 
               {/* Rotas de Usuários */}
               <Route path="users" element={<UserListPage />} />
+              <Route path="users/new" element={<UserForm />} />
+              <Route path="users/:id/edit" element={<UserForm />} />
             </Route>
             
             {/* Rota catch-all - redireciona para dashboard */}

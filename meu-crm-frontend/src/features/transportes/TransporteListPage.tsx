@@ -44,7 +44,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import DateRangeIcon from '@mui/icons-material/DateRange';
 
 // Services and Types
-import transporteService from './transporteServiceFrontend';
+import transporteService from './transporteService';
 import { TransporteDTO, TransporteFilters, PaginationOptions } from './transporteDtosFrontend';
 import clienteService, { ClienteDTO } from '../clients/clientService';
 
@@ -101,9 +101,9 @@ export default function TransporteListPage() {
       if (clienteId !== '') params.clienteId = clienteId as number;
       params.ativo = true; // assumindo que queremos apenas transportes ativos
       
-      const response = await transporteService.getAllTransportes(params);
-      setTransportes(response.data);
-      setTotalItems(response.data.length);
+      const response = await transporteService.getTransportes();
+      setTransportes(response);
+      setTotalItems(response.length);
     } catch (error) {
       console.error('Erro ao carregar transportes:', error);
       setError('Não foi possível carregar os transportes. Tente novamente mais tarde.');

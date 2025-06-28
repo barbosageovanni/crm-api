@@ -7,7 +7,7 @@ exports.userServiceBackend = void 0;
 // src/services/userServiceBackend.ts
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const AppError_1 = require("../errors/AppError");
+const AppError_1 = require("../middlewares/AppError");
 const prisma = new client_1.PrismaClient();
 // Função auxiliar para converter o usuário do Prisma para o formato DTO
 const convertToUserDTO = (user) => {

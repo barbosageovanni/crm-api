@@ -1,7 +1,5 @@
-// src/routes/authRoutes.ts - Estrutura Corrigida e Consistente
-
 import { Router } from 'express';
-import {
+import { 
   register,
   login,
   getProfile,
@@ -12,133 +10,142 @@ import {
   changePassword,
   forgotPassword,
   resetPassword,
-  // Validadores
   registerValidators,
   loginValidators,
   forgotPasswordValidators,
   resetPasswordValidators,
   changePasswordValidators,
+  updateProfileValidators,
+  refreshTokenValidators
 } from '../controllers/authController';
 import { authenticateToken } from '../middlewares/authMiddleware';
-import { rateLimiter } from '../middlewares/rateLimiter';
 
 const router = Router();
 
 // ============================================================================
-// ROTAS PÚBLICAS (sem autenticação)
+// ROTAS PÚBLICAS (SEM AUTENTICAÇÃO)
 // ============================================================================
 
 /**
- * @route   POST /auth/register
- * @desc    Registrar novo usuário
- * @access  Public
+ * @route GET /auth
+ * @desc Informações sobre as rotas de autenticação disponíveis
+ * @access Public
  */
-router.post(
-  '/register',
-  rateLimiter('auth', { windowMs: 15 * 60 * 1000, max: 5 }), // 5 tentativas por 15 min
-  registerValidators,
-  register
-);
+router.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'API de Autenticação CRM Transpontual',
+    version: '1.0.0',
+    availableRoutes: {
+      public: [
+        'POST /auth/register - Registrar novo usuário',
+        'POST /auth/login - Fazer login',
+        'POST /auth/forgot-password - Solicitar recuperação de senha',
+        'POST /auth/reset-password - Redefinir senha',
+        'POST /auth/refresh-token - Renovar token'
+      ],
+      protected: [
+        'GET /auth/profile - Obter perfil do usuário',
+        'PUT /auth/profile - Atualizar perfil',
+        'POST /auth/logout - Fazer logout',
+        'GET /auth/verify-token - Verificar token',
+        'PUT /auth/change-password - Alterar senha'
+      ]
+    },
+    documentation: 'Consulte a documentação da API para mais detalhes sobre cada endpoint.'
+  });
+});
 
 /**
- * @route   POST /auth/login
- * @desc    Fazer login
- * @access  Public
+ * @route POST /auth/register
+ * @desc Registra um novo usuário
+ * @access Public
  */
-router.post(
-  '/login',
-  rateLimiter('auth', { windowMs: 15 * 60 * 1000, max: 10 }), // 10 tentativas por 15 min
-  loginValidators,
-  login
-);
+router.post('/register', registerValidators, register);
 
 /**
- * @route   POST /auth/forgot-password
- * @desc    Solicitar recuperação de senha
- * @access  Public
+ * @route POST /auth/login
+ * @desc Autentica um usuário
+ * @access Public
  */
-router.post(
-  '/forgot-password',
-  rateLimiter('auth', { windowMs: 60 * 60 * 1000, max: 3 }), // 3 tentativas por hora
-  forgotPasswordValidators,
-  forgotPassword
-);
+router.post('/login', loginValidators, login);
 
 /**
- * @route   POST /auth/reset-password
- * @desc    Redefinir senha com token
- * @access  Public
+ * @route GET /auth/login
+ * @desc Retorna erro específico para requisições GET na rota de login
+ * @access Public
  */
-router.post(
-  '/reset-password',
-  rateLimiter('auth', { windowMs: 15 * 60 * 1000, max: 5 }), // 5 tentativas por 15 min
-  resetPasswordValidators,
-  resetPassword
-);
+router.get('/login', (req, res) => {
+  res.status(405).json({
+    status: 'error',
+    message: 'Método não permitido. Use POST para fazer login.',
+    allowedMethods: ['POST'],
+    hint: 'Esta rota aceita apenas requisições POST com email e senha no corpo da requisição.'
+  });
+});
 
 /**
- * @route   POST /auth/refresh-token
- * @desc    Renovar token de acesso
- * @access  Public (mas requer refresh token válido)
+ * @route POST /auth/forgot-password
+ * @desc Inicia processo de recuperação de senha
+ * @access Public
  */
-router.post(
-  '/refresh-token',
-  rateLimiter('auth', { windowMs: 5 * 60 * 1000, max: 10 }), // 10 tentativas por 5 min
-  refreshToken
-);
+router.post('/forgot-password', forgotPasswordValidators, forgotPassword);
+
+/**
+ * @route POST /auth/reset-password
+ * @desc Redefine senha usando token de recuperação
+ * @access Public
+ */
+router.post('/reset-password', resetPasswordValidators, resetPassword);
+
+/**
+ * @route POST /auth/refresh-token
+ * @desc Renova token de acesso usando refresh token
+ * @access Public
+ */
+router.post('/refresh-token', refreshTokenValidators, refreshToken);
 
 // ============================================================================
-// ROTAS PROTEGIDAS (requerem autenticação)
+// ROTAS PROTEGIDAS (COM AUTENTICAÇÃO)
 // ============================================================================
 
 /**
- * @route   GET /auth/profile
- * @desc    Obter perfil do usuário logado
- * @access  Private
+ * @route GET /auth/profile
+ * @desc Obtém perfil do usuário logado
+ * @access Private
  */
 router.get('/profile', authenticateToken, getProfile);
 
 /**
- * @route   PUT /auth/profile
- * @desc    Atualizar perfil do usuário
- * @access  Private
+ * @route PUT /auth/profile
+ * @desc Atualiza perfil do usuário logado
+ * @access Private
  */
-router.put(
-  '/profile',
-  authenticateToken,
-  rateLimiter('profile', { windowMs: 15 * 60 * 1000, max: 20 }), // 20 atualizações por 15 min
-  updateProfile
-);
+router.put('/profile', authenticateToken, updateProfileValidators, updateProfile);
 
 /**
- * @route   POST /auth/change-password
- * @desc    Alterar senha (usuário logado)
- * @access  Private
- */
-router.post(
-  '/change-password',
-  authenticateToken,
-  rateLimiter('auth', { windowMs: 15 * 60 * 1000, max: 5 }), // 5 tentativas por 15 min
-  changePasswordValidators,
-  changePassword
-);
-
-/**
- * @route   POST /auth/logout
- * @desc    Fazer logout
- * @access  Private
+ * @route POST /auth/logout
+ * @desc Realiza logout do usuário
+ * @access Private
  */
 router.post('/logout', authenticateToken, logout);
 
 /**
- * @route   GET /auth/verify-token
- * @desc    Verificar validade do token
- * @access  Private
+ * @route GET /auth/verify-token
+ * @desc Verifica se o token é válido
+ * @access Private
  */
 router.get('/verify-token', authenticateToken, verifyToken);
 
+/**
+ * @route PUT /auth/change-password
+ * @desc Altera senha do usuário logado
+ * @access Private
+ */
+router.put('/change-password', authenticateToken, changePasswordValidators, changePassword);
+
 // ============================================================================
-// EXPORTAÇÃO
+// EXPORT DEFAULT
 // ============================================================================
 
 export default router;

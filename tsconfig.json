@@ -1,43 +1,64 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "useDefineForClassFields": true, // Manter se for necessário para Node.js
-    "lib": ["ES2023"], // Apenas ES2023 para backend, DOM/DOM.Iterable são para navegador
-    "module": "CommonJS", // Essencial para CommonJS
+    "lib": ["ES2022"],
+    "module": "CommonJS",
     "skipLibCheck": true,
-    "typeRoots": ["./node_modules/@types"], // Removi "./src/vite-env.d.ts" se é backend puro
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
 
-    // Configurações para resolução de módulos no Node.js
-    "moduleResolution": "node", // Usar 'node' com CommonJS
-    "allowImportingTsExtensions": false, // Não necessário para CommonJS
+    /* Configurações para Node.js Backend */
+    "moduleResolution": "node",
+    "allowImportingTsExtensions": false,
     "resolveJsonModule": true,
-    "isolatedModules": false, // Não é comum para APIs Node.js puras
-    "noEmit": true, // Manter se você usa ts-node e não gera JS
-    // "jsx": "react-jsx", // Remover se for apenas backend
+    "isolatedModules": true,
+    "noEmit": false,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": false,
+    "sourceMap": true,
+    "removeComments": false,
 
-    /* Linting */
+    /* Linting - Configurações rigorosas para produção */
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
 
-    /* Path mapping */
-    "baseUrl": ".",
+    /* Path mapping para backend */
+    "baseUrl": "./src",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/components/*": ["./src/components/*"],
-      "@/contexts/*": ["./src/contexts/*"],
-      "@/features/*": ["./src/features/*"],
-      "@/utils/*": ["./src/utils/*"],
-      "@/types/*": ["./src/types/*"],
-      "@/hooks/*": ["./src/hooks/*"],
-      "@/services/*": ["./src/services/*"],
-      "@/constants/*": ["./src/constants/*"],
-      "@/dtos/*": ["src/dtos/*"]
+      "@/*": ["./*"],
+      "@/controllers/*": ["./controllers/*"],
+      "@/middlewares/*": ["./middlewares/*"],
+      "@/services/*": ["./services/*"],
+      "@/routes/*": ["./routes/*"],
+      "@/utils/*": ["./utils/*"],
+      "@/types/*": ["./types/*"],
+      "@/config/*": ["./config/*"],
+      "@/dtos/*": ["./dtos/*"],
+      "@/errors/*": ["./errors/*"],
+      "@/models/*": ["./models/*"],
+      "@/prisma/*": ["./prisma/*"]
     }
   },
-  "include": ["src/**/*.ts"], // Inclua apenas os arquivos .ts da sua API
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "meu-crm-frontend/**/*"
+  ],
+  "ts-node": {
+    "esm": false,
+    "experimentalSpecifierResolution": "node"
+  }
 }

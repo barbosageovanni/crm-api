@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 // src/prisma/client.ts
 const client_1 = require("@prisma/client");
-const logger_1 = require("../utils/logger"); // Supondo que seu logger Winston está aqui
+const logger_1 = require("../utils/logger");
 const prisma = new client_1.PrismaClient({
     log: [
         { emit: 'event', level: 'query' },
@@ -11,6 +11,7 @@ const prisma = new client_1.PrismaClient({
         { emit: 'event', level: 'error' },
     ],
 });
+// Tipando corretamente os eventos
 prisma.$on('query', (e) => {
     logger_1.logger.debug('Prisma Query:', { duration: e.duration, query: e.query, params: e.params });
 });

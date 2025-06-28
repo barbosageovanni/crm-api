@@ -52,7 +52,7 @@ export const getTransportes = async (req: Request, res: Response) => {
 };
 
 // Buscar transporte por ID
-export const getTransporteById = async (req: Request, res: Response) => {
+export const getTransporteById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -63,10 +63,11 @@ export const getTransporteById = async (req: Request, res: Response) => {
     console.error('Erro ao buscar transporte:', error);
     
     if (error.name === 'NotFoundError') {
-      return res.status(404).json({ 
+      res.status(404).json({ 
         error: 'Transporte não encontrado',
         message: error.message
       });
+      return;
     }
     
     res.status(500).json({ 
@@ -77,14 +78,15 @@ export const getTransporteById = async (req: Request, res: Response) => {
 };
 
 // Criar novo transporte
-export const createTransporte = async (req: Request, res: Response) => {
+export const createTransporte = async (req: Request, res: Response): Promise<void> => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Dados inválidos',
         errors: errors.array()
       });
+      return;
     }
 
     const {
@@ -108,10 +110,11 @@ export const createTransporte = async (req: Request, res: Response) => {
 
     // Validações básicas
     if (!clienteId || !numeroCteOc || !dataOperacao || !valorTotal) {
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Dados obrigatórios ausentes',
         message: 'Cliente, número CTE/OC, data de operação e valor total são obrigatórios'
       });
+      return;
     }
 
     const transporte = await transporteService.createTransporte({
@@ -141,10 +144,11 @@ export const createTransporte = async (req: Request, res: Response) => {
     console.error('Erro ao criar transporte:', error);
     
     if (error.name === 'NotFoundError') {
-      return res.status(404).json({
+      res.status(404).json({
         error: 'Recurso não encontrado',
         message: error.message
       });
+      return;
     }
     
     res.status(500).json({ 
@@ -155,15 +159,16 @@ export const createTransporte = async (req: Request, res: Response) => {
 };
 
 // Atualizar transporte
-export const updateTransporte = async (req: Request, res: Response) => {
+export const updateTransporte = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Dados inválidos',
         errors: errors.array()
       });
+      return;
     }
 
     const {
@@ -210,10 +215,11 @@ export const updateTransporte = async (req: Request, res: Response) => {
     console.error('Erro ao atualizar transporte:', error);
     
     if (error.name === 'NotFoundError') {
-      return res.status(404).json({
+      res.status(404).json({
         error: 'Transporte não encontrado',
         message: error.message
       });
+      return;
     }
     
     res.status(500).json({ 
@@ -224,7 +230,7 @@ export const updateTransporte = async (req: Request, res: Response) => {
 };
 
 // Deletar transporte
-export const deleteTransporte = async (req: Request, res: Response) => {
+export const deleteTransporte = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -237,10 +243,11 @@ export const deleteTransporte = async (req: Request, res: Response) => {
     console.error('Erro ao deletar transporte:', error);
     
     if (error.name === 'NotFoundError') {
-      return res.status(404).json({
+      res.status(404).json({
         error: 'Transporte não encontrado',
         message: error.message
       });
+      return;
     }
     
     res.status(500).json({ 

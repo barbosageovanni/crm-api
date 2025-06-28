@@ -1,6 +1,6 @@
 // src/prisma/client.ts
-import { PrismaClient } from '@prisma/client';
-import { logger } from '../utils/logger'; // Supondo que seu logger Winston está aqui
+import { PrismaClient, Prisma } from '@prisma/client';
+import { logger } from '../utils/logger';
 
 const prisma = new PrismaClient({
   log: [
@@ -11,6 +11,7 @@ const prisma = new PrismaClient({
   ],
 });
 
+// Tipando corretamente os eventos
 prisma.$on('query', (e) => {
   logger.debug('Prisma Query:', { duration: e.duration, query: e.query, params: e.params });
 });

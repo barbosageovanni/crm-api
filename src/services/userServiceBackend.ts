@@ -206,7 +206,7 @@ export const userServiceBackend = {
       const senhaHash = await bcrypt.hash(novaSenha, 10);
       await prisma.usuario.update({
         where: { id },
-        data: { senhaHash },
+        data: { senhahash: senhaHash },
       });
     } catch (error) {
       if (error instanceof AppError) throw error;

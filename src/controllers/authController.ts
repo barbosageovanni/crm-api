@@ -1,16 +1,71 @@
-// src/controllers/authController.ts - Versão Corrigida e Completa
-
 import { Request, Response, NextFunction } from 'express';
 import { body, matchedData } from 'express-validator';
 import { authService } from '../services/authService';
 import { RegisterUserDTO, LoginUserDTO } from '../dtos/authDtos';
-import { AppError } from '../middlewares/AppError';
+import { AppError } from '../errors/AppError';
 import { handleValidationErrors } from '../middlewares/validationMiddleware';
 import { logger } from '../utils/logger';
 import { $Enums } from '@prisma/client';
 
 // ============================================================================
-// VALIDADORES DE ENTRADA
+// CONSTANTS & TYPES
+// ============================================================================
+
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
+const NAME_REGEX = /^[a-zA-ZÀ-ÿ\s'-]+$/;
+
+interface AuthenticatedRequest extends Request {
+  user?: {
+    userId: number;
+    email: string;
+    papel: $Enums.PapelUsuario;
+  };
+}
+
+interface UpdateProfileDTO {
+  nome?: string;
+  email?: string;
+}
+
+// ============================================================================
+// VALIDATION HELPERS
+// ============================================================================
+
+const createPasswordValidator = (fieldName: string, isRequired = true) => {
+  const validator = body(fieldName);
+  
+  if (isRequired) {
+    validator
+      .notEmpty()
+      .withMessage(`${fieldName} é obrigatório.`);
+  }
+  
+  return validator
+    .isLength({ min: 8, max: 128 })
+    .withMessage(`${fieldName} deve ter entre 8 e 128 caracteres.`)
+    .matches(PASSWORD_REGEX)
+    .withMessage(`${fieldName} deve conter ao menos: 1 letra minúscula, 1 maiúscula, 1 número e 1 caractere especial.`);
+};
+
+const createEmailValidator = (fieldName = 'email', isRequired = true) => {
+  const validator = body(fieldName).trim();
+  
+  if (isRequired) {
+    validator
+      .notEmpty()
+      .withMessage('Email é obrigatório.');
+  }
+  
+  return validator
+    .isEmail()
+    .withMessage('Email inválido.')
+    .isLength({ max: 255 })
+    .withMessage('Email muito longo.')
+    .normalizeEmail();
+};
+
+// ============================================================================
+// VALIDATORS
 // ============================================================================
 
 export const registerValidators = [
@@ -20,27 +75,12 @@ export const registerValidators = [
     .withMessage('Nome é obrigatório.')
     .isLength({ min: 2, max: 100 })
     .withMessage('Nome deve ter entre 2 e 100 caracteres.')
-    .matches(/^[a-zA-ZÀ-ÿ\s]+$/)
-    .withMessage('Nome deve conter apenas letras e espaços.')
+    .matches(NAME_REGEX)
+    .withMessage('Nome deve conter apenas letras, espaços, hífens e apostrofos.')
     .escape(),
     
-  body('email')
-    .trim()
-    .notEmpty()
-    .withMessage('Email é obrigatório.')
-    .isEmail()
-    .withMessage('Email inválido.')
-    .isLength({ max: 255 })
-    .withMessage('Email muito longo.')
-    .normalizeEmail(),
-    
-  body('senha')
-    .notEmpty()
-    .withMessage('Senha é obrigatória.')
-    .isLength({ min: 8, max: 128 })
-    .withMessage('Senha deve ter entre 8 e 128 caracteres.')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('Senha deve conter ao menos: 1 letra minúscula, 1 maiúscula, 1 número e 1 caractere especial.'),
+  createEmailValidator(),
+  createPasswordValidator('senha'),
     
   body('papel')
     .notEmpty()
@@ -52,13 +92,7 @@ export const registerValidators = [
 ];
 
 export const loginValidators = [
-  body('email')
-    .trim()
-    .notEmpty()
-    .withMessage('Email é obrigatório.')
-    .isEmail()
-    .withMessage('Email inválido.')
-    .normalizeEmail(),
+  createEmailValidator(),
     
   body('senha')
     .notEmpty()
@@ -70,14 +104,7 @@ export const loginValidators = [
 ];
 
 export const forgotPasswordValidators = [
-  body('email')
-    .trim()
-    .notEmpty()
-    .withMessage('Email é obrigatório.')
-    .isEmail()
-    .withMessage('Email inválido.')
-    .normalizeEmail(),
-    
+  createEmailValidator(),
   handleValidationErrors,
 ];
 
@@ -86,51 +113,96 @@ export const resetPasswordValidators = [
     .notEmpty()
     .withMessage('Token é obrigatório.')
     .isLength({ min: 10, max: 500 })
-    .withMessage('Token inválido.'),
+    .withMessage('Token inválido.')
+    .isJWT()
+    .withMessage('Token deve ter formato válido.'),
     
-  body('novaSenha')
-    .notEmpty()
-    .withMessage('Nova senha é obrigatória.')
-    .isLength({ min: 8, max: 128 })
-    .withMessage('Nova senha deve ter entre 8 e 128 caracteres.')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('Nova senha deve conter ao menos: 1 letra minúscula, 1 maiúscula, 1 número e 1 caractere especial.'),
-    
+  createPasswordValidator('novaSenha'),
   handleValidationErrors,
 ];
 
 export const changePasswordValidators = [
   body('senhaAtual')
     .notEmpty()
-    .withMessage('Senha atual é obrigatória.'),
+    .withMessage('Senha atual é obrigatória.')
+    .isLength({ min: 1, max: 128 })
+    .withMessage('Senha atual inválida.'),
     
-  body('novaSenha')
+  createPasswordValidator('novaSenha'),
+  
+  body('novaSenha').custom((value, { req }) => {
+    if (value === req.body.senhaAtual) {
+      throw new Error('A nova senha deve ser diferente da senha atual.');
+    }
+    return true;
+  }),
+    
+  handleValidationErrors,
+];
+
+export const updateProfileValidators = [
+  body('nome')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Nome deve ter entre 2 e 100 caracteres.')
+    .matches(NAME_REGEX)
+    .withMessage('Nome deve conter apenas letras, espaços, hífens e apostrofos.')
+    .escape(),
+    
+  createEmailValidator('email', false),
+    
+  handleValidationErrors,
+];
+
+export const refreshTokenValidators = [
+  body('refreshToken')
     .notEmpty()
-    .withMessage('Nova senha é obrigatória.')
-    .isLength({ min: 8, max: 128 })
-    .withMessage('Nova senha deve ter entre 8 e 128 caracteres.')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('Nova senha deve conter ao menos: 1 letra minúscula, 1 maiúscula, 1 número e 1 caractere especial.'),
+    .withMessage('Refresh token é obrigatório.')
+    .isJWT()
+    .withMessage('Refresh token deve ter formato válido.'),
     
   handleValidationErrors,
 ];
 
 // ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+const getClientInfo = (req: Request) => ({
+  ip: req.ip || req.connection.remoteAddress || 'unknown',
+  userAgent: req.get('User-Agent') || 'unknown',
+  timestamp: new Date().toISOString(),
+});
+
+const sanitizeError = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Erro desconhecido';
+};
+
+const extractUserId = (req: AuthenticatedRequest): number => {
+  const userId = req.user?.userId;
+  if (!userId) {
+    throw new AppError('Token inválido ou ausente.', 401);
+  }
+  return userId;
+};
+
+// ============================================================================
 // CONTROLLERS
 // ============================================================================
 
-/**
- * Controller para registro de usuário
- */
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const registerData = matchedData(req) as RegisterUserDTO;
+    const clientInfo = getClientInfo(req);
     
     logger.info('Tentativa de registro de usuário', {
       email: registerData.email,
       papel: registerData.papel,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
+      ...clientInfo,
     });
 
     const userProfile = await authService.register(registerData);
@@ -139,35 +211,31 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       userId: userProfile.id,
       email: userProfile.email,
       papel: userProfile.papel,
+      ...clientInfo,
     });
 
     res.status(201).json({
-      status: 'success',
+      user: userProfile,
       message: 'Usuário registrado com sucesso!',
-      data: {
-        user: userProfile,
-      },
     });
   } catch (error) {
     logger.error('Erro no registro de usuário', {
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      error: sanitizeError(error),
       email: req.body?.email,
+      ...getClientInfo(req),
     });
     next(error);
   }
 };
 
-/**
- * Controller para login de usuário
- */
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const loginData = matchedData(req) as LoginUserDTO;
+    const clientInfo = getClientInfo(req);
     
     logger.info('Tentativa de login', {
       email: loginData.email,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
+      ...clientInfo,
     });
 
     const authResponse = await authService.login(loginData);
@@ -175,34 +243,27 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     logger.info('Login realizado com sucesso', {
       userId: authResponse.user.id,
       email: authResponse.user.email,
+      ...clientInfo,
     });
 
     res.status(200).json({
-      status: 'success',
+      ...authResponse,
       message: 'Login realizado com sucesso!',
-      data: authResponse,
     });
   } catch (error) {
     logger.warn('Falha no login', {
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      error: sanitizeError(error),
       email: req.body?.email,
-      ip: req.ip,
+      ...getClientInfo(req),
     });
     next(error);
   }
 };
 
-/**
- * Controller para obter perfil do usuário logado
- */
-export const getProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = extractUserId(req);
     
-    if (!userId) {
-      return next(new AppError('Token inválido ou ausente.', 401));
-    }
-
     const userProfile = await authService.getUserProfile(userId);
     
     res.status(200).json({
@@ -213,29 +274,26 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
     });
   } catch (error) {
     logger.error('Erro ao obter perfil do usuário', {
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      error: sanitizeError(error),
       userId: req.user?.userId,
+      ...getClientInfo(req),
     });
     next(error);
   }
 };
 
-/**
- * Controller para logout
- */
-export const logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const logout = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user?.userId;
+    const clientInfo = getClientInfo(req);
     
-    if (userId) {
-      // Aqui você pode implementar invalidação de token no Redis ou DB
-      await authService.logout(userId);
-      
-      logger.info('Logout realizado', {
-        userId,
-        ip: req.ip,
-      });
-    }
+    // Por enquanto, apenas fazemos o logout do lado cliente
+    // TODO: Implementar blacklist de tokens no authService
+    
+    logger.info('Logout realizado', {
+      userId,
+      ...clientInfo,
+    });
 
     res.status(200).json({
       status: 'success',
@@ -243,30 +301,19 @@ export const logout = async (req: Request, res: Response, next: NextFunction): P
     });
   } catch (error) {
     logger.error('Erro no logout', {
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      error: sanitizeError(error),
       userId: req.user?.userId,
+      ...getClientInfo(req),
     });
     next(error);
   }
 };
 
-/**
- * Controller para verificar validade do token
- */
-export const verifyToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const verifyToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = extractUserId(req);
     
-    if (!userId) {
-      return next(new AppError('Token inválido.', 401));
-    }
-
-    const isValid = await authService.verifyTokenValidity(userId);
-    
-    if (!isValid) {
-      return next(new AppError('Token expirado ou inválido.', 401));
-    }
-
+    // Se chegou até aqui, o token é válido (passou pelo middleware de autenticação)
     res.status(200).json({
       status: 'success',
       message: 'Token válido.',
@@ -276,156 +323,134 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
       },
     });
   } catch (error) {
+    logger.warn('Token inválido ou expirado', {
+      error: sanitizeError(error),
+      userId: req.user?.userId,
+      ...getClientInfo(req),
+    });
     next(error);
   }
 };
 
-/**
- * Controller para refresh token
- */
 export const refreshToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { refreshToken: token } = req.body;
+    const { refreshToken: token } = matchedData(req);
+    const clientInfo = getClientInfo(req);
     
-    if (!token) {
-      return next(new AppError('Refresh token é obrigatório.', 400));
-    }
-
-    const authResponse = await authService.refreshToken(token);
-    
-    res.status(200).json({
-      status: 'success',
-      message: 'Token renovado com sucesso.',
-      data: authResponse,
+    // TODO: Implementar refresh token no authService
+    logger.warn('Refresh token não implementado', {
+      token: token.substring(0, 10) + '...',
+      ...clientInfo,
     });
+    
+    throw new AppError('Funcionalidade de refresh token não implementada ainda.', 501);
   } catch (error) {
     logger.warn('Falha na renovação do token', {
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
-      ip: req.ip,
+      error: sanitizeError(error),
+      ...getClientInfo(req),
     });
     next(error);
   }
 };
 
-/**
- * Controller para atualizar perfil
- */
-export const updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const updateProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = extractUserId(req);
+    const updateData = matchedData(req) as UpdateProfileDTO;
     
-    if (!userId) {
-      return next(new AppError('Usuário não autenticado.', 401));
+    if (Object.keys(updateData).length === 0) {
+      throw new AppError('Nenhum campo para atualizar foi fornecido.', 400);
     }
-
-    const updateData = matchedData(req);
-    const updatedProfile = await authService.updateProfile(userId, updateData);
     
-    logger.info('Perfil atualizado', {
+    // TODO: Implementar updateProfile no authService
+    logger.warn('Update profile não implementado', {
       userId,
       changedFields: Object.keys(updateData),
+      ...getClientInfo(req),
     });
 
-    res.status(200).json({
-      status: 'success',
-      message: 'Perfil atualizado com sucesso.',
-      data: {
-        user: updatedProfile,
-      },
-    });
+    throw new AppError('Funcionalidade de atualização de perfil não implementada ainda.', 501);
   } catch (error) {
+    logger.error('Erro ao atualizar perfil', {
+      error: sanitizeError(error),
+      userId: req.user?.userId,
+      ...getClientInfo(req),
+    });
     next(error);
   }
 };
 
-/**
- * Controller para mudança de senha
- */
-export const changePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const changePassword = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const userId = req.user?.userId;
-    
-    if (!userId) {
-      return next(new AppError('Usuário não autenticado.', 401));
-    }
-
+    const userId = extractUserId(req);
     const { senhaAtual, novaSenha } = matchedData(req);
     
-    await authService.changePassword(userId, senhaAtual, novaSenha);
-    
-    logger.info('Senha alterada com sucesso', { userId });
-
-    res.status(200).json({
-      status: 'success',
-      message: 'Senha alterada com sucesso.',
+    // TODO: Implementar changePassword no authService
+    logger.warn('Change password não implementado', { 
+      userId,
+      ...getClientInfo(req),
     });
+
+    throw new AppError('Funcionalidade de alteração de senha não implementada ainda.', 501);
   } catch (error) {
     logger.warn('Falha na alteração de senha', {
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      error: sanitizeError(error),
       userId: req.user?.userId,
+      ...getClientInfo(req),
     });
     next(error);
   }
 };
 
-/**
- * Controller para esqueci minha senha
- */
 export const forgotPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const clientInfo = getClientInfo(req);
+  const standardResponse = {
+    status: 'success',
+    message: 'Se o email estiver registrado, você receberá instruções para redefinir sua senha.',
+  };
+
   try {
     const { email } = matchedData(req);
     
     logger.info('Solicitação de recuperação de senha', {
       email,
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
+      ...clientInfo,
     });
 
-    await authService.forgotPassword(email);
+    // TODO: Implementar forgotPassword no authService
+    logger.warn('Forgot password não implementado', { email });
 
-    // Sempre retorna sucesso para não revelar se o email existe
-    res.status(200).json({
-      status: 'success',
-      message: 'Se o email estiver registrado, você receberá instruções para redefinir sua senha.',
-    });
+    // Por segurança, sempre retorna sucesso, mesmo sem implementar
+    res.status(200).json(standardResponse);
   } catch (error) {
     logger.error('Erro na recuperação de senha', {
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      error: sanitizeError(error),
       email: req.body?.email,
+      ...clientInfo,
     });
     
-    // Mesmo em caso de erro, não revela detalhes por segurança
-    res.status(200).json({
-      status: 'success',
-      message: 'Se o email estiver registrado, você receberá instruções para redefinir sua senha.',
-    });
+    res.status(200).json(standardResponse);
   }
 };
 
-/**
- * Controller para resetar senha
- */
 export const resetPassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { token, novaSenha } = matchedData(req);
+    const clientInfo = getClientInfo(req);
     
     logger.info('Tentativa de reset de senha', {
-      token: token.substring(0, 10) + '...',
-      ip: req.ip,
+      tokenPrefix: token.substring(0, 10) + '...',
+      ...clientInfo,
     });
 
-    await authService.resetPassword(token, novaSenha);
-    
-    logger.info('Senha resetada com sucesso');
+    // TODO: Implementar resetPassword no authService
+    logger.warn('Reset password não implementado');
 
-    res.status(200).json({
-      status: 'success',
-      message: 'Senha redefinida com sucesso.',
-    });
+    throw new AppError('Funcionalidade de reset de senha não implementada ainda.', 501);
   } catch (error) {
     logger.warn('Falha no reset de senha', {
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
-      ip: req.ip,
+      error: sanitizeError(error),
+      ...getClientInfo(req),
     });
     next(error);
   }

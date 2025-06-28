@@ -4,8 +4,8 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { body, param } from 'express-validator';
 import { userController } from '../controllers/userController';
 import { PapelUsuario } from '@prisma/client';
-import { authMiddleware as authenticateToken } from '../middlewares/authMiddleware';
-import { handleValidationErrors } from '../middlewares/validationErrorHandler';
+import { authenticateToken } from '../middlewares/authMiddleware';
+import { handleValidationErrors } from '../middlewares/validationMiddleware';
 
 const router = Router();
 
@@ -41,10 +41,11 @@ const resetPasswordValidation = [
 // Middleware de Autorização (Exemplo)
 // Este middleware verifica se o papel do usuário autenticado está na lista de papéis permitidos.
 const authorizeRoles = (roles: PapelUsuario[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     // Garante que o middleware de autenticação já rodou e req.user existe.
     if (!req.user || !roles.includes(req.user.papel)) {
-      return res.status(403).json({ message: 'Acesso negado. Você não tem permissão para este recurso.' });
+      res.status(403).json({ message: 'Acesso negado. Você não tem permissão para este recurso.' });
+      return;
     }
     next();
   };
