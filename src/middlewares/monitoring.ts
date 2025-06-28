@@ -1,5 +1,3 @@
-// src/middlewares/monitoring.ts - VERSÃO ATUALIZADA
-
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 
@@ -10,8 +8,6 @@ export const requestMetrics = (req: Request, res: Response, next: NextFunction) 
   
   logger.info('Request iniciado', { method, url: originalUrl, ip, userAgent });
 
-  // REVISÃO: Usando o evento 'finish' em vez de interceptar 'res.send'.
-  // Esta é uma abordagem muito mais robusta e recomendada.
   res.on('finish', () => {
     const duration = Date.now() - startTime;
     const { statusCode } = res;
@@ -26,7 +22,7 @@ export const requestMetrics = (req: Request, res: Response, next: NextFunction) 
       ip
     });
 
-    if (duration > 5000) { // Limite de 5 segundos
+    if (duration > 5000) {
       logger.warn('Request lento detectado', {
         method,
         url: originalUrl,
@@ -37,4 +33,29 @@ export const requestMetrics = (req: Request, res: Response, next: NextFunction) 
   });
 
   next();
+};
+
+export const healthCheck = (req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    environment: process.env.NODE_ENV || 'development',
+  });
+};
+
+export const metrics = (req: Request, res: Response) => {
+  const memoryUsage = process.memoryUsage();
+  
+  res.set('Content-Type', 'text/plain');
+  res.send(`
+# Memory Usage
+nodejs_memory_usage_rss_bytes ${memoryUsage.rss}
+nodejs_memory_usage_heap_total_bytes ${memoryUsage.heapTotal}
+nodejs_memory_usage_heap_used_bytes ${memoryUsage.heapUsed}
+nodejs_memory_usage_external_bytes ${memoryUsage.external}
+# Process Info
+nodejs_uptime_seconds ${process.uptime()}
+  `.trim());
 };

@@ -174,7 +174,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
+    // Listener para logout automático via interceptor do axios
+    const handleAuthLogout = () => {
+      console.log('🔓 Logout automático detectado via interceptor');
+      dispatch({ type: 'AUTH_LOGOUT' });
+    };
+
+    // Adiciona o listener para o evento customizado
+    window.addEventListener('auth-logout', handleAuthLogout);
+
     initializeAuth();
+
+    // Cleanup: remove o listener quando o componente for desmontado
+    return () => {
+      window.removeEventListener('auth-logout', handleAuthLogout);
+    };
   }, []);
 
   // Função de login

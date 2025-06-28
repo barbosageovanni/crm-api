@@ -1,137 +1,70 @@
-// src/middlewares/errorHandler.ts
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../middlewares/AppError';
 import { logger } from '../utils/logger';
+import { Prisma } from '@prisma/client';
+
+export const notFoundHandler = (req: Request, res: Response, next: NextFunction): void => {
+  next(new AppError(`Rota não encontrada: ${req.method} ${req.originalUrl}`, 404));
+};
 
 export const errorHandler = (
-  error: Error,
+  err: Error,
   req: Request,
   res: Response,
   next: NextFunction
 ): void => {
-  // Log do erro
-  logger.error('Erro capturado pelo errorHandler:', {
-    message: error.message,
-    stack: error.stack,
+  if (res.headersSent) return next(err);
+
+  logger.error('Erro capturado pelo errorHandler', {
+    message: err.message,
+    stack: err.stack,
     path: req.path,
     method: req.method,
-    body: req.body,
-    query: req.query,
     params: req.params,
-    userId: (req as any).user?.id
+    query: req.query,
+    body: req.body,
+    user: (req as any).user
   });
 
-  // Se for um erro customizado (AppError)
-  if (error instanceof AppError) {
-    res.status(error.statusCode).json({
-      success: false,
-      message: error.message,
-      error: {
-        type: 'AppError',
-        statusCode: error.statusCode
-      }
+  // AppError (nossos erros customizados)
+  if (err instanceof AppError) {
+    res.status(err.statusCode).json({
+      status: 'error',
+      message: err.message,
+      errors: err.errors
     });
     return;
   }
 
-  // Erros de validação do Prisma
-  if (error.name === 'PrismaClientValidationError') {
-    res.status(400).json({
-      success: false,
-      message: 'Dados inválidos fornecidos',
-      error: {
-        type: 'ValidationError',
-        statusCode: 400
-      }
-    });
-    return;
-  }
-
-  // Erros de conexão com o banco
-  if (error.name === 'PrismaClientKnownRequestError') {
-    const prismaError = error as any;
-    
-    // Violação de constraint unique
-    if (prismaError.code === 'P2002') {
-      res.status(409).json({
-        success: false,
-        message: 'Dados duplicados. Este registro já existe.',
-        error: {
-          type: 'UniqueConstraintError',
-          statusCode: 409
-        }
-      });
+  // Erros do Prisma
+  if ((err as any).code && (err as any) instanceof Prisma.PrismaClientKnownRequestError) {
+    const prismaErr = err as Prisma.PrismaClientKnownRequestError;
+    // Único constraint
+    if (prismaErr.code === 'P2002') {
+      res.status(409).json({ status: 'error', message: 'Registro duplicado.' });
       return;
     }
-    
-    // Registro não encontrado
-    if (prismaError.code === 'P2025') {
-      res.status(404).json({
-        success: false,
-        message: 'Registro não encontrado',
-        error: {
-          type: 'NotFoundError',
-          statusCode: 404
-        }
-      });
+    // Not found
+    if (prismaErr.code === 'P2025') {
+      res.status(404).json({ status: 'error', message: 'Registro não encontrado.' });
       return;
     }
   }
-
-  // Erros de JWT
-  if (error.name === 'JsonWebTokenError') {
-    res.status(401).json({
-      success: false,
-      message: 'Token inválido',
-      error: {
-        type: 'AuthenticationError',
-        statusCode: 401
-      }
-    });
+  // JSON malformado
+  if (err instanceof SyntaxError && 'body' in err) {
+    res.status(400).json({ status: 'error', message: 'JSON inválido no corpo da requisição.' });
     return;
   }
 
-  if (error.name === 'TokenExpiredError') {
-    res.status(401).json({
-      success: false,
-      message: 'Token expirado',
-      error: {
-        type: 'AuthenticationError',
-        statusCode: 401
-      }
-    });
-    return;
-  }
+  // Falha genérica
+  const code = process.env.NODE_ENV === 'production' ? 500 : 500;
+  const msg  = process.env.NODE_ENV === 'production'
+    ? 'Erro interno do servidor.'
+    : err.message;
 
-  // Erro de sintaxe JSON
-  if (error instanceof SyntaxError && 'body' in error) {
-    res.status(400).json({
-      success: false,
-      message: 'JSON inválido no corpo da requisição',
-      error: {
-        type: 'SyntaxError',
-        statusCode: 400
-      }
-    });
-    return;
-  }
-
-  // Erro genérico (500 Internal Server Error)
-  res.status(500).json({
-    success: false,
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Erro interno do servidor' 
-      : error.message,
-    error: {
-      type: 'InternalServerError',
-      statusCode: 500,
-      ...(process.env.NODE_ENV !== 'production' && {
-        stack: error.stack,
-        details: error.message
-      })
-    }
+  res.status(code).json({
+    status: 'error',
+    message: msg,
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
   });
 };
-
-// Classe de erro customizada
-export { AppError } from '../middlewares/AppError';

@@ -9,8 +9,8 @@ import {
   updateTransporte,
   deleteTransporte
 } from '../controllers/transporteController';
-import { authMiddleware as authenticateToken } from '../middlewares/authMiddleware';
-import { handleValidationErrors } from '../middlewares/validationErrorHandler'; // REVISÃO: Reutilize seu handler de erros
+import { authenticateToken } from '../middlewares/authMiddleware';
+import { handleValidationErrors } from '../middlewares/validationMiddleware';
 
 const router = Router();
 

@@ -63,7 +63,7 @@ export interface ClienteFilters {
   email?: string;
 }
 
-const CLIENTES_ROUTE = "/api/clientes"; // Corrigido para incluir /api
+const CLIENTES_ROUTE = "/clientes"; // Remove /api pois já está no baseURL
 
 const clientService = {
   // Buscar clientes com paginação e filtros
@@ -135,6 +135,19 @@ const clientService = {
     } catch (error) {
       console.error(`Erro ao deletar cliente ${id}:`, error);
       throw error;
+    }
+  },
+
+  // Buscar todos os clientes ativos (para selects/dropdowns)
+  async getAllClientesAtivos(): Promise<ClienteDTO[]> {
+    try {
+      const response = await apiClient.get<PaginatedResponse<ClienteDTO>>(
+        `${CLIENTES_ROUTE}?limit=1000&ativo=true`
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Erro ao buscar clientes ativos:', error);
+      throw new Error('Não foi possível carregar a lista de clientes. Tente novamente mais tarde.');
     }
   },
 };

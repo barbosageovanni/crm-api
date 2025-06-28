@@ -1,7 +1,7 @@
 // src/services/transporteService.ts
 import { PrismaClient, Transporte } from '@prisma/client';
 import { CreateTransporteDTO, UpdateTransporteDTO, TransporteFilters, PaginationOptions } from '../dtos/transporteDtos';
-import { AppError, NotFoundError } from '../middlewares/AppError';
+import { AppError } from '../middlewares/AppError';
 import { logger } from '../utils/logger';
 
 class TransporteService {
@@ -44,13 +44,14 @@ class TransporteService {
       'updatedAt'
     ];
     
+    const formatted: any = { ...result };
     for (const field of dateFields) {
-      if (result[field] instanceof Date) {
-        result[field] = result[field].toISOString();
+      if (formatted[field] instanceof Date) {
+        formatted[field] = formatted[field].toISOString();
       }
     }
     
-    return result;
+    return formatted;
   }
 
   // Listar transportes com filtros e paginação
@@ -147,12 +148,12 @@ class TransporteService {
       });
       
       if (!transporte) {
-        throw new NotFoundError('Transporte', id);
+        throw new AppError(`Transporte com ID ${id} não encontrado`, 404, 'NOT_FOUND');
       }
       
       return this.formatTransporteResponse(transporte);
     } catch (error) {
-      if (error instanceof NotFoundError) {
+      if (error instanceof AppError) {
         throw error;
       }
       
@@ -170,7 +171,7 @@ class TransporteService {
       });
       
       if (!clienteExists) {
-        throw new NotFoundError('Cliente', data.clienteId);
+        throw new AppError(`Cliente com ID ${data.clienteId} não encontrado`, 404, 'NOT_FOUND');
       }
       
       // Converter datas de string para Date
@@ -194,7 +195,7 @@ class TransporteService {
       logger.info('Transporte criado com sucesso', { transporteId: transporte.id });
       return this.formatTransporteResponse(transporte);
     } catch (error) {
-      if (error instanceof NotFoundError) {
+      if (error instanceof AppError) {
         throw error;
       }
       
@@ -212,7 +213,7 @@ class TransporteService {
       });
       
       if (!transporteExists) {
-        throw new NotFoundError('Transporte', id);
+        throw new AppError(`Transporte com ID ${id} não encontrado`, 404, 'NOT_FOUND');
       }
       
       // Converter datas de string para Date
@@ -237,7 +238,7 @@ class TransporteService {
       logger.info('Transporte atualizado com sucesso', { transporteId: id });
       return this.formatTransporteResponse(transporte);
     } catch (error) {
-      if (error instanceof NotFoundError) {
+      if (error instanceof AppError) {
         throw error;
       }
       
@@ -255,7 +256,7 @@ class TransporteService {
       });
       
       if (!transporteExists) {
-        throw new NotFoundError('Transporte', id);
+        throw new AppError(`Transporte com ID ${id} não encontrado`, 404, 'NOT_FOUND');
       }
       
       // Excluir transporte
@@ -266,7 +267,7 @@ class TransporteService {
       logger.info('Transporte excluído com sucesso', { transporteId: id });
       return true;
     } catch (error) {
-      if (error instanceof NotFoundError) {
+      if (error instanceof AppError) {
         throw error;
       }
       

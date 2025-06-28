@@ -68,9 +68,9 @@ const userService = {
   },
 
   // Redefinir senha de usuário
-  resetPassword: async (resetData: ResetPasswordDTO): Promise<void> => {
+  resetPassword: async (id: number, novaSenha: string): Promise<void> => {
     try {
-      await apiClient.post(`${BASE_URL}/reset-password`, resetData);
+      await apiClient.post(`${BASE_URL}/${id}/reset-password`, { novaSenha });
     } catch (error) {
       console.error("Erro ao redefinir senha:", error);
       throw error;

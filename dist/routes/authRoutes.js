@@ -1,69 +1,77 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
-// src/routes/authRoutes.ts
 const express_1 = require("express");
-const express_validator_1 = require("express-validator");
-const authController = __importStar(require("../controllers/authController"));
-const client_1 = require("@prisma/client"); // Importe o enum para validar o campo 'papel'
+const authController_1 = require("../controllers/authController");
+const authMiddleware_1 = require("../middlewares/authMiddleware");
 const router = (0, express_1.Router)();
-// Validações para a rota de Registro
-const registerValidationRules = [
-    (0, express_validator_1.body)('nome')
-        .trim()
-        .notEmpty().withMessage('O nome é obrigatório.')
-        .isLength({ min: 3 }).withMessage('O nome deve ter pelo menos 3 caracteres.'),
-    (0, express_validator_1.body)('email')
-        .isEmail().withMessage('Forneça um email válido.')
-        .normalizeEmail(),
-    (0, express_validator_1.body)('senha')
-        .isLength({ min: 6 }).withMessage('A senha deve ter pelo menos 6 caracteres.'),
-    (0, express_validator_1.body)('papel')
-        .isIn(Object.values(client_1.PapelUsuario)) // Garante que o papel seja um dos valores do enum PapelUsuario
-        .withMessage(`Papel inválido. Valores permitidos: ${Object.values(client_1.PapelUsuario).join(', ')}.`)
-];
-// Validações para a rota de Login
-const loginValidationRules = [
-    (0, express_validator_1.body)('email')
-        .isEmail().withMessage('Forneça um email válido.')
-        .normalizeEmail(),
-    (0, express_validator_1.body)('senha')
-        .notEmpty().withMessage('A senha é obrigatória.'),
-];
-// Definição das Rotas
-router.post('/register', registerValidationRules, authController.register);
-router.post('/login', loginValidationRules, authController.login);
+// ============================================================================
+// ROTAS PÚBLICAS (SEM AUTENTICAÇÃO)
+// ============================================================================
+/**
+ * @route POST /auth/register
+ * @desc Registra um novo usuário
+ * @access Public
+ */
+router.post('/register', authController_1.registerValidators, authController_1.register);
+/**
+ * @route POST /auth/login
+ * @desc Autentica um usuário
+ * @access Public
+ */
+router.post('/login', authController_1.loginValidators, authController_1.login);
+/**
+ * @route POST /auth/forgot-password
+ * @desc Inicia processo de recuperação de senha
+ * @access Public
+ */
+router.post('/forgot-password', authController_1.forgotPasswordValidators, authController_1.forgotPassword);
+/**
+ * @route POST /auth/reset-password
+ * @desc Redefine senha usando token de recuperação
+ * @access Public
+ */
+router.post('/reset-password', authController_1.resetPasswordValidators, authController_1.resetPassword);
+/**
+ * @route POST /auth/refresh-token
+ * @desc Renova token de acesso usando refresh token
+ * @access Public
+ */
+router.post('/refresh-token', authController_1.refreshTokenValidators, authController_1.refreshToken);
+// ============================================================================
+// ROTAS PROTEGIDAS (COM AUTENTICAÇÃO)
+// ============================================================================
+/**
+ * @route GET /auth/profile
+ * @desc Obtém perfil do usuário logado
+ * @access Private
+ */
+router.get('/profile', authMiddleware_1.authenticateToken, authController_1.getProfile);
+/**
+ * @route PUT /auth/profile
+ * @desc Atualiza perfil do usuário logado
+ * @access Private
+ */
+router.put('/profile', authMiddleware_1.authenticateToken, authController_1.updateProfileValidators, authController_1.updateProfile);
+/**
+ * @route POST /auth/logout
+ * @desc Realiza logout do usuário
+ * @access Private
+ */
+router.post('/logout', authMiddleware_1.authenticateToken, authController_1.logout);
+/**
+ * @route GET /auth/verify-token
+ * @desc Verifica se o token é válido
+ * @access Private
+ */
+router.get('/verify-token', authMiddleware_1.authenticateToken, authController_1.verifyToken);
+/**
+ * @route PUT /auth/change-password
+ * @desc Altera senha do usuário logado
+ * @access Private
+ */
+router.put('/change-password', authMiddleware_1.authenticateToken, authController_1.changePasswordValidators, authController_1.changePassword);
+// ============================================================================
+// EXPORT DEFAULT
+// ============================================================================
 exports.default = router;
 //# sourceMappingURL=authRoutes.js.map

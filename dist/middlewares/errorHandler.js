@@ -1,32 +1,63 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.errorHandler = void 0;
-const AppError_1 = require("../errors/AppError");
+exports.errorHandler = exports.notFoundHandler = void 0;
+const AppError_1 = require("../middlewares/AppError");
 const logger_1 = require("../utils/logger");
-const errorHandler = (error, req, res, next) => {
-    logger_1.logger.error('Erro capturado:', {
-        error: error.message,
-        stack: error.stack,
-        url: req.url,
-        method: req.method
+const client_1 = require("@prisma/client");
+const notFoundHandler = (req, res, next) => {
+    next(new AppError_1.AppError(`Rota não encontrada: ${req.method} ${req.originalUrl}`, 404));
+};
+exports.notFoundHandler = notFoundHandler;
+const errorHandler = (err, req, res, next) => {
+    if (res.headersSent)
+        return next(err);
+    logger_1.logger.error('Erro capturado pelo errorHandler', {
+        message: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+        params: req.params,
+        query: req.query,
+        body: req.body,
+        user: req.user
     });
-    if (error instanceof AppError_1.AppError) {
-        return res.status(error.statusCode).json({
+    // AppError (nossos erros customizados)
+    if (err instanceof AppError_1.AppError) {
+        res.status(err.statusCode).json({
             status: 'error',
-            message: error.message,
+            message: err.message,
+            errors: err.errors
         });
+        return;
     }
     // Erros do Prisma
-    if (error.name === 'PrismaClientKnownRequestError') {
-        return res.status(400).json({
-            status: 'error',
-            message: 'Erro de banco de dados',
-        });
+    if (err.code && err instanceof client_1.Prisma.PrismaClientKnownRequestError) {
+        const prismaErr = err;
+        // Único constraint
+        if (prismaErr.code === 'P2002') {
+            res.status(409).json({ status: 'error', message: 'Registro duplicado.' });
+            return;
+        }
+        // Not found
+        if (prismaErr.code === 'P2025') {
+            res.status(404).json({ status: 'error', message: 'Registro não encontrado.' });
+            return;
+        }
     }
-    // Erro genérico
-    return res.status(500).json({
+    // JSON malformado
+    if (err instanceof SyntaxError && 'body' in err) {
+        res.status(400).json({ status: 'error', message: 'JSON inválido no corpo da requisição.' });
+        return;
+    }
+    // Falha genérica
+    const code = process.env.NODE_ENV === 'production' ? 500 : 500;
+    const msg = process.env.NODE_ENV === 'production'
+        ? 'Erro interno do servidor.'
+        : err.message;
+    res.status(code).json({
         status: 'error',
-        message: 'Erro interno do servidor',
+        message: msg,
+        ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
     });
 };
 exports.errorHandler = errorHandler;

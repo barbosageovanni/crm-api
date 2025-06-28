@@ -134,7 +134,7 @@ model Usuario {
   id        Int      @id @default(autoincrement())
   nome      String   @db.VarChar(100)
   email     String   @unique @db.VarChar(255)
-  senhaHash String   @db.VarChar(255)
+  senhaHash String   @db.VarChar(255) @default("")
   papel     PapelUsuario
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())

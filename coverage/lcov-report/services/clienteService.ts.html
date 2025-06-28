@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/359</span>
+                <span class='fraction'>0/336</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/359</span>
+                <span class='fraction'>0/336</span>
             </div>
         
             
@@ -398,53 +398,7 @@
 <a name='L333'></a><a href='#L333'>333</a>
 <a name='L334'></a><a href='#L334'>334</a>
 <a name='L335'></a><a href='#L335'>335</a>
-<a name='L336'></a><a href='#L336'>336</a>
-<a name='L337'></a><a href='#L337'>337</a>
-<a name='L338'></a><a href='#L338'>338</a>
-<a name='L339'></a><a href='#L339'>339</a>
-<a name='L340'></a><a href='#L340'>340</a>
-<a name='L341'></a><a href='#L341'>341</a>
-<a name='L342'></a><a href='#L342'>342</a>
-<a name='L343'></a><a href='#L343'>343</a>
-<a name='L344'></a><a href='#L344'>344</a>
-<a name='L345'></a><a href='#L345'>345</a>
-<a name='L346'></a><a href='#L346'>346</a>
-<a name='L347'></a><a href='#L347'>347</a>
-<a name='L348'></a><a href='#L348'>348</a>
-<a name='L349'></a><a href='#L349'>349</a>
-<a name='L350'></a><a href='#L350'>350</a>
-<a name='L351'></a><a href='#L351'>351</a>
-<a name='L352'></a><a href='#L352'>352</a>
-<a name='L353'></a><a href='#L353'>353</a>
-<a name='L354'></a><a href='#L354'>354</a>
-<a name='L355'></a><a href='#L355'>355</a>
-<a name='L356'></a><a href='#L356'>356</a>
-<a name='L357'></a><a href='#L357'>357</a>
-<a name='L358'></a><a href='#L358'>358</a>
-<a name='L359'></a><a href='#L359'>359</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<a name='L336'></a><a href='#L336'>336</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -781,370 +735,347 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >// src/services/clienteService.ts</span></span></span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >import { PrismaClient, Cliente, Prisma, TipoCliente, $Enums } from '@prisma/client'; // Importe $Enums para TipoCliente</span>
-<span class="cstat-no" title="statement not covered" >import { CreateClienteDTO, UpdateClienteDTO, ClienteFilters, PaginationOptions } from '../dtos/clienteDtos';</span>
-<span class="cstat-no" title="statement not covered" >import { AppError, NotFoundError, ValidationError, DuplicateError } from '../errors/AppError';</span>
-<span class="cstat-no" title="statement not covered" >import { cpf, cnpj } from 'cpf-cnpj-validator';</span>
+<span class="cstat-no" title="statement not covered" >import { PrismaClient, $Enums } from '@prisma/client';</span>
+<span class="cstat-no" title="statement not covered" >import { CreateClienteDTO, UpdateClienteDTO, ClienteFilters, PaginationOptions, PaginatedClienteResponse, ClienteResponseDTO } from '../dtos/clienteDtos';</span>
+<span class="cstat-no" title="statement not covered" >import { AppError } from '../middlewares/AppError';</span>
 <span class="cstat-no" title="statement not covered" >import { logger } from '../utils/logger';</span>
-<span class="cstat-no" title="statement not covered" >import { redisService, CACHE_KEYS, CACHE_TTL } from '../config/redis';</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >class ClienteService {</span>
-<span class="cstat-no" title="statement not covered" >  constructor(private prisma: PrismaClient) {}</span>
+<span class="cstat-no" title="statement not covered" >const prisma = new PrismaClient();</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >  async getAllClientes(filters?: ClienteFilters, pagination?: PaginationOptions) {</span>
-<span class="cstat-no" title="statement not covered" >    const page = Math.max(1, pagination?.page || 1);</span>
-<span class="cstat-no" title="statement not covered" >    const limit = Math.min(pagination?.limit || 10, 100);</span>
-<span class="cstat-no" title="statement not covered" >    const skip = (page - 1) * limit;</span>
+<span class="cstat-no" title="statement not covered" >// Type alias para clareza</span>
+<span class="cstat-no" title="statement not covered" >type PrismaTipoCliente = $Enums.TipoCliente;</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >    const where = this.buildWhereClause(filters);</span>
-<span class="cstat-no" title="statement not covered" >    const orderBy = this.buildOrderBy(pagination);</span>
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >    const cacheKey = `${CACHE_KEYS.CLIENTE_LIST}:page:${page}:limit:${limit}:filters:${JSON.stringify(filters)}:orderBy:${JSON.stringify(orderBy)}`;</span>
-<span class="cstat-no" title="statement not covered" >    </span>
+<span class="cstat-no" title="statement not covered" >export class ClienteService {</span>
+<span class="cstat-no" title="statement not covered" >  async getAllClientes(filters: ClienteFilters = {}, pagination: PaginationOptions = {}): Promise&lt;PaginatedClienteResponse&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      const cachedResult = await redisService.get&lt;{ data: Cliente[]; pagination: any }&gt;(cacheKey);</span>
-<span class="cstat-no" title="statement not covered" >      if (cachedResult) {</span>
-<span class="cstat-no" title="statement not covered" >        logger.info('Cache HIT para getAllClientes', { cacheKey });</span>
-<span class="cstat-no" title="statement not covered" >        return cachedResult;</span>
+<span class="cstat-no" title="statement not covered" >      const {</span>
+<span class="cstat-no" title="statement not covered" >        page = 1,</span>
+<span class="cstat-no" title="statement not covered" >        limit = 10,</span>
+<span class="cstat-no" title="statement not covered" >        sortBy = 'nome',</span>
+<span class="cstat-no" title="statement not covered" >        sortOrder = 'asc'</span>
+<span class="cstat-no" title="statement not covered" >      } = pagination;</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      const {</span>
+<span class="cstat-no" title="statement not covered" >        nome,</span>
+<span class="cstat-no" title="statement not covered" >        tipo,</span>
+<span class="cstat-no" title="statement not covered" >        ativo,</span>
+<span class="cstat-no" title="statement not covered" >        search,</span>
+<span class="cstat-no" title="statement not covered" >        email</span>
+<span class="cstat-no" title="statement not covered" >      } = filters;</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      // Construir condições de filtro</span>
+<span class="cstat-no" title="statement not covered" >      const where: any = {};</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      if (nome) {</span>
+<span class="cstat-no" title="statement not covered" >        where.nome = {</span>
+<span class="cstat-no" title="statement not covered" >          contains: nome,</span>
+<span class="cstat-no" title="statement not covered" >          mode: 'insensitive'</span>
+<span class="cstat-no" title="statement not covered" >        };</span>
 <span class="cstat-no" title="statement not covered" >      }</span>
-<span class="cstat-no" title="statement not covered" >    } catch (cacheError: unknown) { // Tipagem para cacheError</span>
-<span class="cstat-no" title="statement not covered" >      const err = cacheError instanceof Error ? cacheError : new Error(String(cacheError));</span>
-<span class="cstat-no" title="statement not covered" >      logger.warn('Erro ao buscar clientes do cache', { cacheKey, error: err.message });</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >    logger.info('Cache MISS para getAllClientes', { cacheKey });</span>
+<span class="cstat-no" title="statement not covered" >      if (tipo) {</span>
+<span class="cstat-no" title="statement not covered" >        where.tipo = tipo;</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      // Para consistência, se o mock do Prisma no teste for mais simples,</span>
-<span class="cstat-no" title="statement not covered" >      // pode ser melhor mockar findMany e count separadamente.</span>
-<span class="cstat-no" title="statement not covered" >      // A transação aqui é boa para produção.</span>
-<span class="cstat-no" title="statement not covered" >      const [clientes, total] = await this.prisma.$transaction([</span>
-<span class="cstat-no" title="statement not covered" >        this.prisma.cliente.findMany({ where, orderBy, skip, take: limit }),</span>
-<span class="cstat-no" title="statement not covered" >        this.prisma.cliente.count({ where })</span>
+<span class="cstat-no" title="statement not covered" >      if (typeof ativo === 'boolean') {</span>
+<span class="cstat-no" title="statement not covered" >        where.ativo = ativo;</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      if (email) {</span>
+<span class="cstat-no" title="statement not covered" >        where.email = {</span>
+<span class="cstat-no" title="statement not covered" >          contains: email,</span>
+<span class="cstat-no" title="statement not covered" >          mode: 'insensitive'</span>
+<span class="cstat-no" title="statement not covered" >        };</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      if (search) {</span>
+<span class="cstat-no" title="statement not covered" >        where.OR = [</span>
+<span class="cstat-no" title="statement not covered" >          { nome: { contains: search, mode: 'insensitive' } },</span>
+<span class="cstat-no" title="statement not covered" >          { email: { contains: search, mode: 'insensitive' } },</span>
+<span class="cstat-no" title="statement not covered" >          { cnpjCpf: { contains: search } }</span>
+<span class="cstat-no" title="statement not covered" >        ];</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      // Calcular offset para paginação</span>
+<span class="cstat-no" title="statement not covered" >      const offset = (page - 1) * limit;</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      // Buscar clientes</span>
+<span class="cstat-no" title="statement not covered" >      const [clientes, total] = await Promise.all([</span>
+<span class="cstat-no" title="statement not covered" >        prisma.cliente.findMany({</span>
+<span class="cstat-no" title="statement not covered" >          where,</span>
+<span class="cstat-no" title="statement not covered" >          orderBy: {</span>
+<span class="cstat-no" title="statement not covered" >            [sortBy]: sortOrder</span>
+<span class="cstat-no" title="statement not covered" >          },</span>
+<span class="cstat-no" title="statement not covered" >          skip: offset,</span>
+<span class="cstat-no" title="statement not covered" >          take: limit</span>
+<span class="cstat-no" title="statement not covered" >        }),</span>
+<span class="cstat-no" title="statement not covered" >        prisma.cliente.count({ where })</span>
 <span class="cstat-no" title="statement not covered" >      ]);</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >      const totalPages = Math.ceil(total / limit);</span>
-<span class="cstat-no" title="statement not covered" >      const result = {</span>
-<span class="cstat-no" title="statement not covered" >        data: clientes,</span>
-<span class="cstat-no" title="statement not covered" >        pagination: { page, limit, total, totalPages, hasNext: page &lt; totalPages, hasPrev: page &gt; 1 },</span>
-<span class="cstat-no" title="statement not covered" >      };</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >      await redisService.set(cacheKey, result, CACHE_TTL.MEDIUM);</span>
-<span class="cstat-no" title="statement not covered" >      return result;</span>
-<span class="cstat-no" title="statement not covered" >    } catch (error: unknown) {</span>
-<span class="cstat-no" title="statement not covered" >      const err = error instanceof Error ? error : new Error(String(error));</span>
-<span class="cstat-no" title="statement not covered" >      logger.error('Erro ao listar clientes', { originalError: err, originalMessage: err.message, filters, pagination });</span>
-<span class="cstat-no" title="statement not covered" >      if (err instanceof AppError) throw err;</span>
-<span class="cstat-no" title="statement not covered" >      throw new AppError('Erro ao listar clientes.', 500);</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" >      // Mapear para DTO de resposta</span>
+<span class="cstat-no" title="statement not covered" >      const clientesFormatted: ClienteResponseDTO[] = clientes.map(cliente =&gt; ({</span>
+<span class="cstat-no" title="statement not covered" >        id: cliente.id,</span>
+<span class="cstat-no" title="statement not covered" >        nome: cliente.nome,</span>
+<span class="cstat-no" title="statement not covered" >        tipo: cliente.tipo,</span>
+<span class="cstat-no" title="statement not covered" >        cnpjCpf: cliente.cnpjCpf,</span>
+<span class="cstat-no" title="statement not covered" >        email: cliente.email,</span>
+<span class="cstat-no" title="statement not covered" >        telefone: cliente.telefone,</span>
+<span class="cstat-no" title="statement not covered" >        endereco: cliente.endereco,</span>
+<span class="cstat-no" title="statement not covered" >        ativo: cliente.ativo,</span>
+<span class="cstat-no" title="statement not covered" >        createdAt: cliente.createdAt,</span>
+<span class="cstat-no" title="statement not covered" >        updatedAt: cliente.updatedAt</span>
+<span class="cstat-no" title="statement not covered" >      }));</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >  async getClienteById(id: number): Promise&lt;Cliente&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (!id || id &lt;= 0) {</span>
-<span class="cstat-no" title="statement not covered" >      throw new ValidationError([], 'ID inválido');</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    const cacheKey = `${CACHE_KEYS.CLIENTE_BY_ID}:${id}`;</span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      const cachedCliente = await redisService.get&lt;Cliente&gt;(cacheKey);</span>
-<span class="cstat-no" title="statement not covered" >      if (cachedCliente) {</span>
-<span class="cstat-no" title="statement not covered" >        logger.info('Cache HIT para getClienteById', { cacheKey });</span>
-<span class="cstat-no" title="statement not covered" >        return cachedCliente;</span>
-<span class="cstat-no" title="statement not covered" >      }</span>
-<span class="cstat-no" title="statement not covered" >    } catch (cacheError: unknown) {</span>
-<span class="cstat-no" title="statement not covered" >      const err = cacheError instanceof Error ? cacheError : new Error(String(cacheError));</span>
-<span class="cstat-no" title="statement not covered" >      logger.warn('Erro ao buscar cliente do cache por ID', { cacheKey, id, error: err.message });</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    logger.info('Cache MISS para getClienteById', { cacheKey });</span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      const cliente = await this.prisma.cliente.findUnique({ where: { id } });</span>
-<span class="cstat-no" title="statement not covered" >      if (!cliente) {</span>
-<span class="cstat-no" title="statement not covered" >        throw new NotFoundError('Cliente', id);</span>
-<span class="cstat-no" title="statement not covered" >      }</span>
-<span class="cstat-no" title="statement not covered" >      await redisService.set(cacheKey, cliente, CACHE_TTL.MEDIUM);</span>
-<span class="cstat-no" title="statement not covered" >      return cliente;</span>
-<span class="cstat-no" title="statement not covered" >    } catch (error: unknown) {</span>
-<span class="cstat-no" title="statement not covered" >      const err = error instanceof Error ? error : new Error(String(error));</span>
-<span class="cstat-no" title="statement not covered" >      logger.error('Erro ao buscar cliente por ID', { originalError: err, originalMessage: err.message, id });</span>
-<span class="cstat-no" title="statement not covered" >      if (err instanceof AppError) throw err;</span>
-<span class="cstat-no" title="statement not covered" >      throw new AppError('Erro ao buscar cliente por ID.', 500);</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" >      logger.info('Clientes listados com sucesso', {</span>
+<span class="cstat-no" title="statement not covered" >        total,</span>
+<span class="cstat-no" title="statement not covered" >        page,</span>
+<span class="cstat-no" title="statement not covered" >        limit,</span>
+<span class="cstat-no" title="statement not covered" >        totalPages,</span>
+<span class="cstat-no" title="statement not covered" >        filters</span>
+<span class="cstat-no" title="statement not covered" >      });</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >  async createCliente(data: CreateClienteDTO): Promise&lt;Cliente&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    await this.validateClienteData(data);</span>
-<span class="cstat-no" title="statement not covered" >    </span>
-<span class="cstat-no" title="statement not covered" >    if (data.cnpjCpf) { // Checa apenas se cnpjCpf foi fornecido</span>
-<span class="cstat-no" title="statement not covered" >      await this.checkDuplicateCnpjCpf(data.cnpjCpf);</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    // Se o email for único no schema, adicione uma checagem de duplicidade para email também:</span>
-<span class="cstat-no" title="statement not covered" >    // if (data.email) {</span>
-<span class="cstat-no" title="statement not covered" >    //   await this.checkDuplicateEmail(data.email);</span>
-<span class="cstat-no" title="statement not covered" >    // }</span>
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >    const cleanData = this.sanitizeData(data);</span>
-<span class="cstat-no" title="statement not covered" >    </span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      const cliente = await this.prisma.cliente.create({ data: cleanData });</span>
-<span class="cstat-no" title="statement not covered" >      logger.info('Cliente criado', { clienteId: cliente.id });</span>
-<span class="cstat-no" title="statement not covered" >      await redisService.del(`${CACHE_KEYS.CLIENTE_LIST}:*`);</span>
-<span class="cstat-no" title="statement not covered" >      return cliente;</span>
-<span class="cstat-no" title="statement not covered" >    } catch (error: unknown) {</span>
-<span class="cstat-no" title="statement not covered" >      const err = error instanceof Error ? error : new Error(String(error));</span>
-<span class="cstat-no" title="statement not covered" >      logger.error('Erro ao criar cliente no DB', { originalError: err, originalMessage: err.message, data });</span>
-<span class="cstat-no" title="statement not covered" >      </span>
-<span class="cstat-no" title="statement not covered" >      if (err instanceof Prisma.PrismaClientKnownRequestError &amp;&amp; err.code === 'P2002') {</span>
-<span class="cstat-no" title="statement not covered" >        const target = (err.meta?.target as string[]) || ['campo desconhecido'];</span>
-<span class="cstat-no" title="statement not covered" >        const fieldName = target.join(', ');</span>
-<span class="cstat-no" title="statement not covered" >        let problematicValue = 'valor não especificado';</span>
-<span class="cstat-no" title="statement not covered" >        if (target.includes('cnpjCpf') &amp;&amp; data.cnpjCpf) {</span>
-<span class="cstat-no" title="statement not covered" >          problematicValue = data.cnpjCpf;</span>
-<span class="cstat-no" title="statement not covered" >        } else if (target.includes('email') &amp;&amp; data.email) {</span>
-<span class="cstat-no" title="statement not covered" >          problematicValue = data.email;</span>
+<span class="cstat-no" title="statement not covered" >      return {</span>
+<span class="cstat-no" title="statement not covered" >        data: clientesFormatted,</span>
+<span class="cstat-no" title="statement not covered" >        pagination: {</span>
+<span class="cstat-no" title="statement not covered" >          page,</span>
+<span class="cstat-no" title="statement not covered" >          limit,</span>
+<span class="cstat-no" title="statement not covered" >          total,</span>
+<span class="cstat-no" title="statement not covered" >          totalPages,</span>
+<span class="cstat-no" title="statement not covered" >          hasNext: page &lt; totalPages,</span>
+<span class="cstat-no" title="statement not covered" >          hasPrev: page &gt; 1</span>
 <span class="cstat-no" title="statement not covered" >        }</span>
-<span class="cstat-no" title="statement not covered" >        throw new DuplicateError(fieldName, problematicValue);</span>
-<span class="cstat-no" title="statement not covered" >      }</span>
-<span class="cstat-no" title="statement not covered" >      if (err instanceof AppError) throw err;</span>
-<span class="cstat-no" title="statement not covered" >      throw new AppError('Erro ao criar cliente.', 500);</span>
+<span class="cstat-no" title="statement not covered" >      };</span>
+<span class="cstat-no" title="statement not covered" >    } catch (error) {</span>
+<span class="cstat-no" title="statement not covered" >      logger.error('Erro ao listar clientes', { </span>
+<span class="cstat-no" title="statement not covered" >        error: error instanceof Error ? error.message : error, </span>
+<span class="cstat-no" title="statement not covered" >        filters </span>
+<span class="cstat-no" title="statement not covered" >      });</span>
+<span class="cstat-no" title="statement not covered" >      throw new AppError('Erro interno do servidor ao listar clientes.', 500);</span>
 <span class="cstat-no" title="statement not covered" >    }</span>
 <span class="cstat-no" title="statement not covered" >  }</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >  async updateCliente(id: number, data: UpdateClienteDTO): Promise&lt;Cliente&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    const existingCliente = await this.getClienteById(id); // Verifica existência e pega dados atuais</span>
-<span class="cstat-no" title="statement not covered" >    </span>
-<span class="cstat-no" title="statement not covered" >    // Validação de CNPJ/CPF apenas se estiver sendo alterado e tipo for fornecido</span>
-<span class="cstat-no" title="statement not covered" >    if (data.cnpjCpf &amp;&amp; data.cnpjCpf !== existingCliente.cnpjCpf) {</span>
-<span class="cstat-no" title="statement not covered" >      if (!data.tipo) {</span>
-<span class="cstat-no" title="statement not covered" >        throw new ValidationError([], 'O campo "tipo" (PF/PJ) é obrigatório ao atualizar o CPF/CNPJ para um novo valor.');</span>
-<span class="cstat-no" title="statement not covered" >      }</span>
-<span class="cstat-no" title="statement not covered" >      await this.validateCnpjCpf(data.cnpjCpf, data.tipo);</span>
-<span class="cstat-no" title="statement not covered" >      await this.checkDuplicateCnpjCpf(data.cnpjCpf, id);</span>
-<span class="cstat-no" title="statement not covered" >    } else if (data.cnpjCpf &amp;&amp; !data.tipo &amp;&amp; data.tipo !== existingCliente.tipo) {</span>
-<span class="cstat-no" title="statement not covered" >      // Se está mudando o CNPJ/CPF, mas não informou o tipo (e o tipo antigo era diferente)</span>
-<span class="cstat-no" title="statement not covered" >      throw new ValidationError([], 'O campo "tipo" (PF/PJ) é obrigatório se o tipo do cliente também estiver sendo alterado junto com o CPF/CNPJ.');</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >    // Se o email estiver sendo alterado e for único, verificar duplicidade</span>
-<span class="cstat-no" title="statement not covered" >    // if (data.email &amp;&amp; data.email !== existingCliente.email) {</span>
-<span class="cstat-no" title="statement not covered" >    //   await this.checkDuplicateEmail(data.email, id);</span>
-<span class="cstat-no" title="statement not covered" >    // }</span>
-<span class="cstat-no" title="statement not covered" >    </span>
-<span class="cstat-no" title="statement not covered" >    const cleanData = this.sanitizeUpdateData(data);</span>
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >    if (Object.keys(cleanData).length === 0) {</span>
-<span class="cstat-no" title="statement not covered" >      logger.info('Nenhum dado válido fornecido para atualização do cliente.', { clienteId: id });</span>
-<span class="cstat-no" title="statement not covered" >      return existingCliente; // Retorna o cliente existente sem alteração</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    </span>
+<span class="cstat-no" title="statement not covered" >  async getClienteById(id: number): Promise&lt;ClienteResponseDTO&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      const cliente = await this.prisma.cliente.update({</span>
-<span class="cstat-no" title="statement not covered" >        where: { id },</span>
-<span class="cstat-no" title="statement not covered" >        data: cleanData // updatedAt é gerenciado pelo Prisma</span>
+<span class="cstat-no" title="statement not covered" >      const cliente = await prisma.cliente.findUnique({</span>
+<span class="cstat-no" title="statement not covered" >        where: { id }</span>
+<span class="cstat-no" title="statement not covered" >      });</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      if (!cliente) {</span>
+<span class="cstat-no" title="statement not covered" >        throw new AppError('Cliente não encontrado.', 404);</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      logger.info('Cliente encontrado com sucesso', { clienteId: id });</span>
+<span class="cstat-no" title="statement not covered" >      </span>
+<span class="cstat-no" title="statement not covered" >      return {</span>
+<span class="cstat-no" title="statement not covered" >        id: cliente.id,</span>
+<span class="cstat-no" title="statement not covered" >        nome: cliente.nome,</span>
+<span class="cstat-no" title="statement not covered" >        tipo: cliente.tipo,</span>
+<span class="cstat-no" title="statement not covered" >        cnpjCpf: cliente.cnpjCpf,</span>
+<span class="cstat-no" title="statement not covered" >        email: cliente.email,</span>
+<span class="cstat-no" title="statement not covered" >        telefone: cliente.telefone,</span>
+<span class="cstat-no" title="statement not covered" >        endereco: cliente.endereco,</span>
+<span class="cstat-no" title="statement not covered" >        ativo: cliente.ativo,</span>
+<span class="cstat-no" title="statement not covered" >        createdAt: cliente.createdAt,</span>
+<span class="cstat-no" title="statement not covered" >        updatedAt: cliente.updatedAt</span>
+<span class="cstat-no" title="statement not covered" >      };</span>
+<span class="cstat-no" title="statement not covered" >    } catch (error) {</span>
+<span class="cstat-no" title="statement not covered" >      if (error instanceof AppError) {</span>
+<span class="cstat-no" title="statement not covered" >        throw error;</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" >      logger.error('Erro ao buscar cliente por ID', { </span>
+<span class="cstat-no" title="statement not covered" >        error: error instanceof Error ? error.message : error, </span>
+<span class="cstat-no" title="statement not covered" >        clienteId: id </span>
+<span class="cstat-no" title="statement not covered" >      });</span>
+<span class="cstat-no" title="statement not covered" >      throw new AppError('Erro interno do servidor ao buscar cliente.', 500);</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  async createCliente(data: CreateClienteDTO): Promise&lt;ClienteResponseDTO&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    try {</span>
+<span class="cstat-no" title="statement not covered" >      // Verificar se já existe cliente com mesmo CNPJ/CPF (se fornecido)</span>
+<span class="cstat-no" title="statement not covered" >      if (data.cnpjCpf) {</span>
+<span class="cstat-no" title="statement not covered" >        const existingCliente = await prisma.cliente.findUnique({</span>
+<span class="cstat-no" title="statement not covered" >          where: { cnpjCpf: data.cnpjCpf }</span>
+<span class="cstat-no" title="statement not covered" >        });</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >        if (existingCliente) {</span>
+<span class="cstat-no" title="statement not covered" >          throw new AppError('Já existe um cliente cadastrado com este CNPJ/CPF.', 409);</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      // Verificar se já existe cliente com mesmo email (se fornecido)</span>
+<span class="cstat-no" title="statement not covered" >      if (data.email) {</span>
+<span class="cstat-no" title="statement not covered" >        const existingEmail = await prisma.cliente.findUnique({</span>
+<span class="cstat-no" title="statement not covered" >          where: { email: data.email }</span>
+<span class="cstat-no" title="statement not covered" >        });</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >        if (existingEmail) {</span>
+<span class="cstat-no" title="statement not covered" >          throw new AppError('Já existe um cliente cadastrado com este email.', 409);</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      const cliente = await prisma.cliente.create({</span>
+<span class="cstat-no" title="statement not covered" >        data: {</span>
+<span class="cstat-no" title="statement not covered" >          nome: data.nome,</span>
+<span class="cstat-no" title="statement not covered" >          tipo: data.tipo,</span>
+<span class="cstat-no" title="statement not covered" >          cnpjCpf: data.cnpjCpf || null,</span>
+<span class="cstat-no" title="statement not covered" >          email: data.email || null,</span>
+<span class="cstat-no" title="statement not covered" >          telefone: data.telefone || null,</span>
+<span class="cstat-no" title="statement not covered" >          endereco: data.endereco || null,</span>
+<span class="cstat-no" title="statement not covered" >          ativo: data.ativo ?? true</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+<span class="cstat-no" title="statement not covered" >      });</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      logger.info('Cliente criado com sucesso', { </span>
+<span class="cstat-no" title="statement not covered" >        clienteId: cliente.id, </span>
+<span class="cstat-no" title="statement not covered" >        nome: cliente.nome </span>
 <span class="cstat-no" title="statement not covered" >      });</span>
 <span class="cstat-no" title="statement not covered" >      </span>
-<span class="cstat-no" title="statement not covered" >      logger.info('Cliente atualizado', { clienteId: id });</span>
-<span class="cstat-no" title="statement not covered" >      await redisService.del(`${CACHE_KEYS.CLIENTE_BY_ID}:${id}`);</span>
-<span class="cstat-no" title="statement not covered" >      await redisService.del(`${CACHE_KEYS.CLIENTE_LIST}:*`);</span>
-<span class="cstat-no" title="statement not covered" >      return cliente;</span>
-<span class="cstat-no" title="statement not covered" >    } catch (error: unknown) {</span>
-<span class="cstat-no" title="statement not covered" >      const err = error instanceof Error ? error : new Error(String(error));</span>
-<span class="cstat-no" title="statement not covered" >      logger.error('Erro ao atualizar cliente no DB', { originalError: err, originalMessage: err.message, id, data });</span>
-<span class="cstat-no" title="statement not covered" >      </span>
-<span class="cstat-no" title="statement not covered" >      if (err instanceof Prisma.PrismaClientKnownRequestError &amp;&amp; err.code === 'P2002') {</span>
-<span class="cstat-no" title="statement not covered" >        const target = (err.meta?.target as string[]) || ['campo desconhecido'];</span>
-<span class="cstat-no" title="statement not covered" >        const fieldName = target.join(', ');</span>
-<span class="cstat-no" title="statement not covered" >        let problematicValue = 'valor não especificado';</span>
-<span class="cstat-no" title="statement not covered" >        if (target.includes('cnpjCpf') &amp;&amp; data.cnpjCpf) {</span>
-<span class="cstat-no" title="statement not covered" >          problematicValue = data.cnpjCpf;</span>
-<span class="cstat-no" title="statement not covered" >        } else if (target.includes('email') &amp;&amp; data.email) {</span>
-<span class="cstat-no" title="statement not covered" >          problematicValue = data.email;</span>
-<span class="cstat-no" title="statement not covered" >        }</span>
-<span class="cstat-no" title="statement not covered" >        throw new DuplicateError(fieldName, problematicValue);</span>
+<span class="cstat-no" title="statement not covered" >      return {</span>
+<span class="cstat-no" title="statement not covered" >        id: cliente.id,</span>
+<span class="cstat-no" title="statement not covered" >        nome: cliente.nome,</span>
+<span class="cstat-no" title="statement not covered" >        tipo: cliente.tipo,</span>
+<span class="cstat-no" title="statement not covered" >        cnpjCpf: cliente.cnpjCpf,</span>
+<span class="cstat-no" title="statement not covered" >        email: cliente.email,</span>
+<span class="cstat-no" title="statement not covered" >        telefone: cliente.telefone,</span>
+<span class="cstat-no" title="statement not covered" >        endereco: cliente.endereco,</span>
+<span class="cstat-no" title="statement not covered" >        ativo: cliente.ativo,</span>
+<span class="cstat-no" title="statement not covered" >        createdAt: cliente.createdAt,</span>
+<span class="cstat-no" title="statement not covered" >        updatedAt: cliente.updatedAt</span>
+<span class="cstat-no" title="statement not covered" >      };</span>
+<span class="cstat-no" title="statement not covered" >    } catch (error) {</span>
+<span class="cstat-no" title="statement not covered" >      if (error instanceof AppError) {</span>
+<span class="cstat-no" title="statement not covered" >        throw error;</span>
 <span class="cstat-no" title="statement not covered" >      }</span>
-<span class="cstat-no" title="statement not covered" >      if (err instanceof AppError) throw err;</span>
-<span class="cstat-no" title="statement not covered" >      throw new AppError('Erro ao atualizar cliente.', 500);</span>
+<span class="cstat-no" title="statement not covered" >      logger.error('Erro ao criar cliente', { </span>
+<span class="cstat-no" title="statement not covered" >        error: error instanceof Error ? error.message : error, </span>
+<span class="cstat-no" title="statement not covered" >        data </span>
+<span class="cstat-no" title="statement not covered" >      });</span>
+<span class="cstat-no" title="statement not covered" >      throw new AppError('Erro interno do servidor ao criar cliente.', 500);</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  async updateCliente(id: number, data: UpdateClienteDTO): Promise&lt;ClienteResponseDTO&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    try {</span>
+<span class="cstat-no" title="statement not covered" >      // Verificar se o cliente existe</span>
+<span class="cstat-no" title="statement not covered" >      const existingCliente = await prisma.cliente.findUnique({</span>
+<span class="cstat-no" title="statement not covered" >        where: { id }</span>
+<span class="cstat-no" title="statement not covered" >      });</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      if (!existingCliente) {</span>
+<span class="cstat-no" title="statement not covered" >        throw new AppError('Cliente não encontrado.', 404);</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      // Verificar conflitos de CNPJ/CPF se fornecido</span>
+<span class="cstat-no" title="statement not covered" >      if (data.cnpjCpf &amp;&amp; data.cnpjCpf !== existingCliente.cnpjCpf) {</span>
+<span class="cstat-no" title="statement not covered" >        const existingCnpjCpf = await prisma.cliente.findUnique({</span>
+<span class="cstat-no" title="statement not covered" >          where: { cnpjCpf: data.cnpjCpf }</span>
+<span class="cstat-no" title="statement not covered" >        });</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >        if (existingCnpjCpf) {</span>
+<span class="cstat-no" title="statement not covered" >          throw new AppError('Já existe um cliente cadastrado com este CNPJ/CPF.', 409);</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      // Verificar conflitos de email se fornecido</span>
+<span class="cstat-no" title="statement not covered" >      if (data.email &amp;&amp; data.email !== existingCliente.email) {</span>
+<span class="cstat-no" title="statement not covered" >        const existingEmail = await prisma.cliente.findUnique({</span>
+<span class="cstat-no" title="statement not covered" >          where: { email: data.email }</span>
+<span class="cstat-no" title="statement not covered" >        });</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >        if (existingEmail) {</span>
+<span class="cstat-no" title="statement not covered" >          throw new AppError('Já existe um cliente cadastrado com este email.', 409);</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      const cliente = await prisma.cliente.update({</span>
+<span class="cstat-no" title="statement not covered" >        where: { id },</span>
+<span class="cstat-no" title="statement not covered" >        data: {</span>
+<span class="cstat-no" title="statement not covered" >          ...(data.nome !== undefined &amp;&amp; { nome: data.nome }),</span>
+<span class="cstat-no" title="statement not covered" >          ...(data.tipo !== undefined &amp;&amp; { tipo: data.tipo }),</span>
+<span class="cstat-no" title="statement not covered" >          ...(data.cnpjCpf !== undefined &amp;&amp; { cnpjCpf: data.cnpjCpf }),</span>
+<span class="cstat-no" title="statement not covered" >          ...(data.email !== undefined &amp;&amp; { email: data.email }),</span>
+<span class="cstat-no" title="statement not covered" >          ...(data.telefone !== undefined &amp;&amp; { telefone: data.telefone }),</span>
+<span class="cstat-no" title="statement not covered" >          ...(data.endereco !== undefined &amp;&amp; { endereco: data.endereco }),</span>
+<span class="cstat-no" title="statement not covered" >          ...(data.ativo !== undefined &amp;&amp; { ativo: data.ativo })</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+<span class="cstat-no" title="statement not covered" >      });</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >      logger.info('Cliente atualizado com sucesso', { </span>
+<span class="cstat-no" title="statement not covered" >        clienteId: id, </span>
+<span class="cstat-no" title="statement not covered" >        nome: cliente.nome </span>
+<span class="cstat-no" title="statement not covered" >      });</span>
+<span class="cstat-no" title="statement not covered" >      </span>
+<span class="cstat-no" title="statement not covered" >      return {</span>
+<span class="cstat-no" title="statement not covered" >        id: cliente.id,</span>
+<span class="cstat-no" title="statement not covered" >        nome: cliente.nome,</span>
+<span class="cstat-no" title="statement not covered" >        tipo: cliente.tipo,</span>
+<span class="cstat-no" title="statement not covered" >        cnpjCpf: cliente.cnpjCpf,</span>
+<span class="cstat-no" title="statement not covered" >        email: cliente.email,</span>
+<span class="cstat-no" title="statement not covered" >        telefone: cliente.telefone,</span>
+<span class="cstat-no" title="statement not covered" >        endereco: cliente.endereco,</span>
+<span class="cstat-no" title="statement not covered" >        ativo: cliente.ativo,</span>
+<span class="cstat-no" title="statement not covered" >        createdAt: cliente.createdAt,</span>
+<span class="cstat-no" title="statement not covered" >        updatedAt: cliente.updatedAt</span>
+<span class="cstat-no" title="statement not covered" >      };</span>
+<span class="cstat-no" title="statement not covered" >    } catch (error) {</span>
+<span class="cstat-no" title="statement not covered" >      if (error instanceof AppError) {</span>
+<span class="cstat-no" title="statement not covered" >        throw error;</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" >      logger.error('Erro ao atualizar cliente', { </span>
+<span class="cstat-no" title="statement not covered" >        error: error instanceof Error ? error.message : error, </span>
+<span class="cstat-no" title="statement not covered" >        clienteId: id, </span>
+<span class="cstat-no" title="statement not covered" >        data </span>
+<span class="cstat-no" title="statement not covered" >      });</span>
+<span class="cstat-no" title="statement not covered" >      throw new AppError('Erro interno do servidor ao atualizar cliente.', 500);</span>
 <span class="cstat-no" title="statement not covered" >    }</span>
 <span class="cstat-no" title="statement not covered" >  }</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >  async deleteCliente(id: number): Promise&lt;void&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    await this.getClienteById(id); // Verifica existência</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      await this.prisma.cliente.delete({ where: { id } });</span>
-<span class="cstat-no" title="statement not covered" >      logger.info('Cliente deletado', { clienteId: id });</span>
-<span class="cstat-no" title="statement not covered" >      await redisService.del(`${CACHE_KEYS.CLIENTE_BY_ID}:${id}`);</span>
-<span class="cstat-no" title="statement not covered" >      await redisService.del(`${CACHE_KEYS.CLIENTE_LIST}:*`);</span>
-<span class="cstat-no" title="statement not covered" >    } catch (error: unknown) {</span>
-<span class="cstat-no" title="statement not covered" >      const err = error instanceof Error ? error : new Error(String(error));</span>
-<span class="cstat-no" title="statement not covered" >      logger.error('Erro ao deletar cliente', { originalError: err, originalMessage: err.message, id });</span>
-<span class="cstat-no" title="statement not covered" >      if (err instanceof AppError) throw err;</span>
-<span class="cstat-no" title="statement not covered" >      throw new AppError('Erro ao deletar cliente.', 500);</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" >      // Verificar se o cliente existe</span>
+<span class="cstat-no" title="statement not covered" >      const existingCliente = await prisma.cliente.findUnique({</span>
+<span class="cstat-no" title="statement not covered" >        where: { id }</span>
+<span class="cstat-no" title="statement not covered" >      });</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >  private validateCnpjCpf(cnpjCpfValue: string, tipo: $Enums.TipoCliente): void { // Tipo explícito do Enum</span>
-<span class="cstat-no" title="statement not covered" >    const cleanValue = cnpjCpfValue.replace(/\D/g, '');</span>
-<span class="cstat-no" title="statement not covered" >    if (tipo === $Enums.TipoCliente.PF) {</span>
-<span class="cstat-no" title="statement not covered" >      if (!cpf.isValid(cleanValue)) throw new ValidationError([], 'CPF inválido');</span>
-<span class="cstat-no" title="statement not covered" >    } else if (tipo === $Enums.TipoCliente.PJ) {</span>
-<span class="cstat-no" title="statement not covered" >      if (!cnpj.isValid(cleanValue)) throw new ValidationError([], 'CNPJ inválido');</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >  private async validateClienteData(data: CreateClienteDTO): Promise&lt;void&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (!data.nome?.trim()) throw new ValidationError([], 'Nome é obrigatório');</span>
-<span class="cstat-no" title="statement not covered" >    if (!data.tipo) throw new ValidationError([], 'Tipo (PF/PJ) é obrigatório');</span>
-<span class="cstat-no" title="statement not covered" >    // Valida se o tipo fornecido é um membro do enum TipoCliente</span>
-<span class="cstat-no" title="statement not covered" >    if (!Object.values($Enums.TipoCliente).includes(data.tipo as $Enums.TipoCliente)) {</span>
-<span class="cstat-no" title="statement not covered" >      throw new ValidationError([], 'Tipo deve ser PF ou PJ');</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    if (data.cnpjCpf) {</span>
-<span class="cstat-no" title="statement not covered" >      this.validateCnpjCpf(data.cnpjCpf, data.tipo as $Enums.TipoCliente); // Cast seguro após validação acima</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    if (data.email &amp;&amp; !this.isValidEmail(data.email)) { // Verifica se email existe no DTO</span>
-<span class="cstat-no" title="statement not covered" >      throw new ValidationError([], 'Email inválido');</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >  private isValidEmail(email: string): boolean {</span>
-<span class="cstat-no" title="statement not covered" >    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >  // Refatorado para usar Prisma.ClienteCreateInput e evitar 'any'</span>
-<span class="cstat-no" title="statement not covered" >  private sanitizeData(data: CreateClienteDTO): Prisma.ClienteCreateInput {</span>
-<span class="cstat-no" title="statement not covered" >    const sanitizedInput: Prisma.ClienteCreateInput = {</span>
-<span class="cstat-no" title="statement not covered" >      nome: data.nome.trim(),</span>
-<span class="cstat-no" title="statement not covered" >      tipo: data.tipo, // data.tipo já deve ser do tipo $Enums.TipoCliente após validateClienteData</span>
-<span class="cstat-no" title="statement not covered" >    };</span>
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >    if (data.cnpjCpf !== undefined) {</span>
-<span class="cstat-no" title="statement not covered" >      sanitizedInput.cnpjCpf = data.cnpjCpf ? data.cnpjCpf.replace(/\D/g, '') : null;</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    if (data.email !== undefined) {</span>
-<span class="cstat-no" title="statement not covered" >      sanitizedInput.email = data.email ? data.email.toLowerCase().trim() : null;</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    if (data.telefone !== undefined) {</span>
-<span class="cstat-no" title="statement not covered" >      sanitizedInput.telefone = data.telefone ? data.telefone.replace(/\D/g, '') : null;</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    if (data.endereco !== undefined) {</span>
-<span class="cstat-no" title="statement not covered" >      sanitizedInput.endereco = data.endereco ? data.endereco.trim() : null;</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    if (data.ativo !== undefined) { // Se CreateClienteDTO permitir definir 'ativo'</span>
-<span class="cstat-no" title="statement not covered" >        sanitizedInput.ativo = data.ativo;</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    // createdAt e updatedAt são gerenciados pelo Prisma</span>
-<span class="cstat-no" title="statement not covered" >    return sanitizedInput;</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >  // Refatorado para usar Prisma.ClienteUpdateInput e evitar 'any'</span>
-<span class="cstat-no" title="statement not covered" >  private sanitizeUpdateData(data: UpdateClienteDTO): Prisma.ClienteUpdateInput {</span>
-<span class="cstat-no" title="statement not covered" >    const updateInput: Prisma.ClienteUpdateInput = {};</span>
-<span class="cstat-no" title="statement not covered" >    </span>
-<span class="cstat-no" title="statement not covered" >    if (data.nome !== undefined) updateInput.nome = data.nome.trim();</span>
-<span class="cstat-no" title="statement not covered" >    if (data.cnpjCpf !== undefined) updateInput.cnpjCpf = data.cnpjCpf ? data.cnpjCpf.replace(/\D/g, '') : null;</span>
-<span class="cstat-no" title="statement not covered" >    if (data.tipo !== undefined) updateInput.tipo = data.tipo; // Assume que data.tipo é $Enums.TipoCliente</span>
-<span class="cstat-no" title="statement not covered" >    if (data.email !== undefined) updateInput.email = data.email ? data.email.toLowerCase().trim() : null;</span>
-<span class="cstat-no" title="statement not covered" >    if (data.telefone !== undefined) updateInput.telefone = data.telefone ? data.telefone.replace(/\D/g, '') : null;</span>
-<span class="cstat-no" title="statement not covered" >    if (data.endereco !== undefined) updateInput.endereco = data.endereco ? data.endereco.trim() : null;</span>
-<span class="cstat-no" title="statement not covered" >    if (data.ativo !== undefined) updateInput.ativo = data.ativo;</span>
-<span class="cstat-no" title="statement not covered" >    </span>
-<span class="cstat-no" title="statement not covered" >    return updateInput;</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >  private async checkDuplicateCnpjCpf(cnpjCpf: string, excludeId?: number): Promise&lt;void&gt; { // Removido transactionPrisma não utilizado</span>
-<span class="cstat-no" title="statement not covered" >    const cleanCnpjCpf = cnpjCpf.replace(/\D/g, '');</span>
-<span class="cstat-no" title="statement not covered" >    </span>
-<span class="cstat-no" title="statement not covered" >    const existing = await this.prisma.cliente.findFirst({</span>
-<span class="cstat-no" title="statement not covered" >      where: {</span>
-<span class="cstat-no" title="statement not covered" >        cnpjCpf: cleanCnpjCpf,</span>
-<span class="cstat-no" title="statement not covered" >        AND: excludeId ? { id: { not: excludeId } } : {}, // Mais seguro que spread</span>
-<span class="cstat-no" title="statement not covered" >      },</span>
-<span class="cstat-no" title="statement not covered" >    });</span>
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >    if (existing) {</span>
-<span class="cstat-no" title="statement not covered" >      throw new DuplicateError('CPF/CNPJ', cnpjCpf);</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
-<span class="cstat-no" title="statement not covered" >  // Adicionar checkDuplicateEmail se email for único:</span>
-<span class="cstat-no" title="statement not covered" >  // private async checkDuplicateEmail(email: string, excludeId?: number): Promise&lt;void&gt; {</span>
-<span class="cstat-no" title="statement not covered" >  //   const existing = await this.prisma.cliente.findFirst({</span>
-<span class="cstat-no" title="statement not covered" >  //     where: {</span>
-<span class="cstat-no" title="statement not covered" >  //       email: email.toLowerCase().trim(),</span>
-<span class="cstat-no" title="statement not covered" >  //       AND: excludeId ? { id: { not: excludeId } } : {},</span>
-<span class="cstat-no" title="statement not covered" >  //     },</span>
-<span class="cstat-no" title="statement not covered" >  //   });</span>
-<span class="cstat-no" title="statement not covered" >  //   if (existing) {</span>
-<span class="cstat-no" title="statement not covered" >  //     throw new DuplicateError('Email', email);</span>
-<span class="cstat-no" title="statement not covered" >  //   }</span>
-<span class="cstat-no" title="statement not covered" >  // }</span>
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >  private buildWhereClause(filters?: ClienteFilters): Prisma.ClienteWhereInput {</span>
-<span class="cstat-no" title="statement not covered" >    if (!filters) return {};</span>
-<span class="cstat-no" title="statement not covered" >    const where: Prisma.ClienteWhereInput = {};</span>
-<span class="cstat-no" title="statement not covered" >    </span>
-<span class="cstat-no" title="statement not covered" >    if (filters.nome) {</span>
-<span class="cstat-no" title="statement not covered" >      where.nome = { contains: filters.nome, mode: 'insensitive' };</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    // IMPORTANTE: Certifique-se que filters.tipo no DTO ClienteFilters é do tipo $Enums.TipoCliente</span>
-<span class="cstat-no" title="statement not covered" >    if (filters.tipo) {</span>
-<span class="cstat-no" title="statement not covered" >      where.tipo = { equals: filters.tipo }; // Usar 'equals' para enums é mais explícito</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    if (filters.ativo !== undefined) {</span>
-<span class="cstat-no" title="statement not covered" >      where.ativo = filters.ativo;</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    if (filters.search) {</span>
-<span class="cstat-no" title="statement not covered" >      const searchCleaned = filters.search.replace(/\D/g, '');</span>
-<span class="cstat-no" title="statement not covered" >      const orConditions: Prisma.ClienteWhereInput[] = [</span>
-<span class="cstat-no" title="statement not covered" >        { nome: { contains: filters.search, mode: 'insensitive' } },</span>
-<span class="cstat-no" title="statement not covered" >        // Se quiser busca por email no search geral:</span>
-<span class="cstat-no" title="statement not covered" >        // { email: { contains: filters.search, mode: 'insensitive' } },</span>
-<span class="cstat-no" title="statement not covered" >      ];</span>
-<span class="cstat-no" title="statement not covered" >      if (searchCleaned.length &gt; 0) {</span>
-<span class="cstat-no" title="statement not covered" >        orConditions.push({ cnpjCpf: { contains: searchCleaned } });</span>
+<span class="cstat-no" title="statement not covered" >      if (!existingCliente) {</span>
+<span class="cstat-no" title="statement not covered" >        throw new AppError('Cliente não encontrado.', 404);</span>
 <span class="cstat-no" title="statement not covered" >      }</span>
-<span class="cstat-no" title="statement not covered" >      where.OR = orConditions;</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    return where;</span>
-<span class="cstat-no" title="statement not covered" >  }</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >  private buildOrderBy(pagination?: PaginationOptions): Prisma.ClienteOrderByWithRelationInput | Prisma.ClienteOrderByWithRelationInput[] {</span>
-<span class="cstat-no" title="statement not covered" >    // Os campos permitidos para ordenação devem existir no modelo Cliente</span>
-<span class="cstat-no" title="statement not covered" >    const allowedSortByFields: (keyof Cliente)[] = ['id', 'nome', 'tipo', 'cnpjCpf', 'ativo', 'email', 'createdAt', 'updatedAt'];</span>
-<span class="cstat-no" title="statement not covered" >    </span>
-<span class="cstat-no" title="statement not covered" >    let sortBy: keyof Cliente = 'id'; // Campo padrão para ordenação</span>
-<span class="cstat-no" title="statement not covered" >    let sortOrder: Prisma.SortOrder = 'desc'; // Ordem padrão</span>
+<span class="cstat-no" title="statement not covered" >      // Soft delete - apenas desativar o cliente ao invés de deletar</span>
+<span class="cstat-no" title="statement not covered" >      await prisma.cliente.update({</span>
+<span class="cstat-no" title="statement not covered" >        where: { id },</span>
+<span class="cstat-no" title="statement not covered" >        data: { ativo: false }</span>
+<span class="cstat-no" title="statement not covered" >      });</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >    if (pagination?.sortBy &amp;&amp; allowedSortByFields.includes(pagination.sortBy as keyof Cliente)) {</span>
-<span class="cstat-no" title="statement not covered" >      sortBy = pagination.sortBy as keyof Cliente;</span>
-<span class="cstat-no" title="statement not covered" >    } else if (pagination?.sortBy) {</span>
-<span class="cstat-no" title="statement not covered" >      logger.warn(`Tentativa de ordenação por campo inválido: ${pagination.sortBy}. Usando padrão (id desc).`);</span>
+<span class="cstat-no" title="statement not covered" >      logger.info('Cliente desativado com sucesso', { </span>
+<span class="cstat-no" title="statement not covered" >        clienteId: id, </span>
+<span class="cstat-no" title="statement not covered" >        nome: existingCliente.nome </span>
+<span class="cstat-no" title="statement not covered" >      });</span>
+<span class="cstat-no" title="statement not covered" >    } catch (error) {</span>
+<span class="cstat-no" title="statement not covered" >      if (error instanceof AppError) {</span>
+<span class="cstat-no" title="statement not covered" >        throw error;</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" >      logger.error('Erro ao deletar cliente', { </span>
+<span class="cstat-no" title="statement not covered" >        error: error instanceof Error ? error.message : error, </span>
+<span class="cstat-no" title="statement not covered" >        clienteId: id </span>
+<span class="cstat-no" title="statement not covered" >      });</span>
+<span class="cstat-no" title="statement not covered" >      throw new AppError('Erro interno do servidor ao deletar cliente.', 500);</span>
 <span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >    if (pagination?.sortOrder &amp;&amp; ['asc', 'desc'].includes(pagination.sortOrder)) {</span>
-<span class="cstat-no" title="statement not covered" >      sortOrder = pagination.sortOrder;</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
-<span class="cstat-no" title="statement not covered" >    </span>
-<span class="cstat-no" title="statement not covered" >    return { [sortBy]: sortOrder };</span>
 <span class="cstat-no" title="statement not covered" >  }</span>
 <span class="cstat-no" title="statement not covered" >}</span>
 <span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >// Instância Singleton</span>
-<span class="cstat-no" title="statement not covered" >const prisma = new PrismaClient(); // Considere adicionar opções de log do Prisma aqui</span>
-<span class="cstat-no" title="statement not covered" >const clienteServiceInstance = new ClienteService(prisma);</span>
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >// Exporta um objeto com os métodos do serviço</span>
-<span class="cstat-no" title="statement not covered" >export const clienteService = {</span>
-<span class="cstat-no" title="statement not covered" >  getAllClientes: clienteServiceInstance.getAllClientes.bind(clienteServiceInstance),</span>
-<span class="cstat-no" title="statement not covered" >  getClienteById: clienteServiceInstance.getClienteById.bind(clienteServiceInstance),</span>
-<span class="cstat-no" title="statement not covered" >  createCliente: clienteServiceInstance.createCliente.bind(clienteServiceInstance),</span>
-<span class="cstat-no" title="statement not covered" >  updateCliente: clienteServiceInstance.updateCliente.bind(clienteServiceInstance),</span>
-<span class="cstat-no" title="statement not covered" >  deleteCliente: clienteServiceInstance.deleteCliente.bind(clienteServiceInstance),</span>
-<span class="cstat-no" title="statement not covered" >};</span></pre></td></tr></table></pre>
+<span class="cstat-no" title="statement not covered" >// Instanciar e exportar o service</span>
+<span class="cstat-no" title="statement not covered" >export const clienteService = new ClienteService();</span></pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-06-01T12:55:51.774Z
+                at 2025-06-24T13:58:17.540Z
             </div>
         <script src="../prettify.js"></script>
         <script>

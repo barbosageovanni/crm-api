@@ -30,7 +30,7 @@ import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 
 // Services and Types
-import transporteService from './transporteServiceFrontend';
+import transporteService from './transporteService';
 import { CreateTransporteDTO, UpdateTransporteDTO, TransporteDTO } from './transporteDtosFrontend';
 import clienteService from '../clients/clientService';
 import { ClienteDTO } from '../clients/clientService';
@@ -74,8 +74,8 @@ export default function TransporteForm() {
     const fetchClientes = async () => {
       setLoadingClientes(true);
       try {
-        const response = await clienteService.getClientes(1, 1000, { ativo: true });
-        setClientes(response.data);
+        const clientesData = await clienteService.getAllClientesAtivos();
+        setClientes(clientesData);
       } catch (error) {
         console.error('Erro ao carregar clientes:', error);
         setError('Não foi possível carregar a lista de clientes. Tente novamente mais tarde.');

@@ -7,7 +7,7 @@ import {
   type AuthResponseDTO,
   type UserPublicProfileDTO,
 } from '../dtos/authDtos';
-import { AppError, DuplicateError, NotFoundError, ValidationError } from '../middlewares/AppError';
+import { AppError } from '../middlewares/AppError';
 import { logger } from '../utils/logger';
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -43,14 +43,14 @@ class AuthService {
     const { nome, email, senha, papel } = data;
 
     if (!nome || !email || !senha || !papel) {
-      throw new ValidationError([], 'Todos os campos (nome, email, senha, papel) são obrigatórios para registro.');
+      throw new AppError('Todos os campos (nome, email, senha, papel) são obrigatórios para registro.', 400);
     }
 
     const existingUser = await this.prisma.usuario.findUnique({
       where: { email },
     });
     if (existingUser) {
-      throw new DuplicateError('Email', email);
+      throw new AppError('Email já está em uso.', 409);
     }
 
     const salt = await bcryptjs.genSalt(10);
@@ -66,7 +66,7 @@ class AuthService {
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error('Erro ao criar usuário no banco de dados', { originalError: err, email });
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        throw new DuplicateError('Email', email);
+        throw new AppError('Email já está em uso.', 409);
       }
       if (err instanceof AppError) throw err;
       throw new AppError(`Erro interno ao registrar usuário: ${err.message}`, 500);
@@ -77,7 +77,7 @@ class AuthService {
     const { email, senha } = data;
     if (!email || !senha) {
       logger.warn('Login attempt: Email or password missing', { email });
-      throw new ValidationError([], 'Email e senha são obrigatórios.');
+      throw new AppError('Email e senha são obrigatórios.', 400);
     }
 
     logger.info('Login attempt: Searching for user', { email });
@@ -125,7 +125,7 @@ class AuthService {
     });
 
     if (!user || !user.ativo) {
-      throw new NotFoundError('Usuário', id);
+      throw new AppError(`Usuário com ID ${id} não encontrado`, 404, 'NOT_FOUND');
     }
 
     return this.toPublicProfile(user);

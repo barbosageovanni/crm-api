@@ -8,13 +8,13 @@ import {
     validateListClientes,
     validateIdParam
 } from '../middlewares/clienteValidator';
-import { handleValidationErrors } from '../middlewares/validationErrorHandler';
-import { authMiddleware } from '../middlewares/authMiddleware';
+import { handleValidationErrors } from '../middlewares/validationMiddleware';
+import { authenticateToken } from '../middlewares/authMiddleware';
 
 const router = Router();
 
 // Aplica autenticação para todas as rotas de clientes
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // Definição das Rotas com orquestração clara
 router.get(
